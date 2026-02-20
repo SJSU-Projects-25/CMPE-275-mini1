@@ -95,21 +95,73 @@ The script will:
 
 **Note**: The assignment requires datasets totaling >12 GB and >2 million records. You may need multiple monthly/yearly datasets.
 
+## Testing
+
+### Test CSV Reader
+
+```bash
+# Build test utility
+cd build
+make test_csv_reader
+
+# Test parsing on a sample file
+./bin/test_csv_reader ../data/your_file.csv 10
+```
+
+### Run Full Benchmark
+
+```bash
+# Build benchmark harness
+cd build
+make taxi_bench
+
+# Run benchmark (10 iterations by default)
+./bin/taxi_bench ../data/2018_Yellow_Taxi_Trip_Data_20260216.csv 10
+```
+
 ## Phase 1 Status
 
 ✅ Build system configured  
 ✅ Project structure created  
 ✅ Data automation script ready  
-🚧 CSV parsing (in progress)  
-🚧 Benchmark harness (in progress)
+✅ CSV reader (streaming, RFC 4180 compliant)  
+✅ Schema mapping and type conversion  
+✅ Error handling and normalization  
+✅ DatasetManager with search APIs  
+✅ Benchmark harness with timing
+
+## Architecture
+
+### Phase 1 Design (Current)
+
+- **TripRecord**: Data structure with primitive types only (int, double, bool, int64_t)
+- **CsvReader**: Streaming CSV parser with RFC 4180 compliance
+  - Handles quoted fields, escaped quotes, empty fields
+  - Type conversion with error handling
+  - Timestamp parsing (YYYY-MM-DD HH:MM:SS → Unix epoch seconds)
+- **DatasetManager**: Main library interface
+  - Loads CSV files into memory (Array-of-Objects pattern)
+  - Provides search APIs: `search_by_fare()`, `search_by_distance()`, `search_by_passenger_count()`
+  - Tracks loading statistics
+- **Benchmark Harness**: Performance measurement tool
+  - Times CSV loading and search operations
+  - Runs multiple iterations and calculates averages
+  - Reports statistics and success rates
+
+### Error Handling Strategy
+
+- **Critical fields** (timestamps): Invalid values cause row to be discarded
+- **Non-critical fields**: Missing/invalid values normalized to defaults (0 or 0.0)
+- **Statistics**: Tracks rows read, parsed successfully, and discarded
+- **Validation**: Records must pass `TripRecord::is_valid()` check
 
 ## Team Responsibilities
 
-- **Person A**: Data ingestion + parsing pipeline (core)
-  - CSV reader (streaming, buffered)
-  - Schema mapping (per-column parsing, type conversion)
-  - Error handling strategy (bad rows, missing values)
-  - Field normalization (dates, ints, floats)
-  - TaxiTrip loader that outputs Phase 1 structure
-  - Build system (CMakeLists.txt)
-  - Benchmarking harness
+- **Ashish**: Data ingestion + parsing pipeline (core) ✅ COMPLETE
+  - ✅ CSV reader (streaming, buffered)
+  - ✅ Schema mapping (per-column parsing, type conversion)
+  - ✅ Error handling strategy (bad rows, missing values)
+  - ✅ Field normalization (dates, ints, floats)
+  - ✅ TaxiTrip loader that outputs Phase 1 structure
+  - ✅ Build system (CMakeLists.txt)
+  - ✅ Benchmarking harness

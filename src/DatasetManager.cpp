@@ -13,21 +13,36 @@ DatasetManager::DatasetManager() : records_(), load_stats_() {
 void DatasetManager::load_from_csv(const std::string& csv_path) {
     clear();
     
-    CsvReader reader(csv_path);
-    if (!reader.is_open()) {
-        throw std::runtime_error("Failed to open CSV file: " + csv_path);
-    }
+    try {
+        CsvReader reader(csv_path);
+        if (!reader.is_open()) {
+            throw std::runtime_error("Failed to open CSV file: " + csv_path);
+        }
 
-    TripRecord record;
-    while (reader.read_next(record)) {
-        records_.push_back(record);
-    }
+        TripRecord record;
+        while (reader.read_next(record)) {
+            records_.push_back(record);
+        }
 
-    // Update statistics
-    auto csv_stats = reader.get_stats();
-    load_stats_.total_rows_read = csv_stats.rows_read;
-    load_stats_.total_rows_parsed = csv_stats.rows_parsed_ok;
-    load_stats_.total_rows_discarded = csv_stats.rows_discarded;
+        // Update statistics
+        auto csv_stats = reader.get_stats();
+        load_stats_.total_rows_read = csv_stats.rows_read;
+        load_stats_.total_rows_parsed = csv_stats.rows_parsed_ok;
+        load_stats_.total_rows_discarded = csv_stats.rows_discarded;
+        
+        // Warn if no records were loaded
+        if (records_.empty() && csv_stats.rows_read > 0) {
+            // This is a warning, not an error - file might be empty or all rows invalid
+            // We'll let the caller decide what to do
+        }
+        
+    } catch (const std::runtime_error&) {
+        // Re-throw runtime errors (file not found, etc.)
+        throw;
+    } catch (const std::exception& e) {
+        // Wrap other exceptions
+        throw std::runtime_error("Error reading CSV file: " + std::string(e.what()));
+    }
 }
 
 void DatasetManager::clear() {
