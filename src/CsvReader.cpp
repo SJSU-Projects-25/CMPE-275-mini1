@@ -9,7 +9,7 @@
 namespace taxi {
 
 CsvReader::CsvReader(const std::string& filepath)
-    : file_(filepath), stats_(), header_read_(false) {
+    : file_(filepath, std::ios::in), stats_(), header_read_(false) {
     if (!file_.is_open()) {
         throw std::runtime_error("Failed to open CSV file: " + filepath);
     }
@@ -32,26 +32,30 @@ bool CsvReader::is_open() const {
 
 bool CsvReader::read_next(TripRecord& record) {
     std::string line;
-    if (!std::getline(file_, line)) {
-        return false; // EOF
-    }
-
-    // Skip empty lines
-    if (line.empty() || (line.find_first_not_of(" \t\r\n") == std::string::npos)) {
-        stats_.rows_read++;
-        stats_.rows_discarded++;
-        return false;
-    }
-
-    stats_.rows_read++;
     
-    if (parse_line(line, record)) {
-        stats_.rows_parsed_ok++;
-        return true;
-    } else {
-        stats_.rows_discarded++;
-        return false;
+    // Keep reading until we get a valid record or hit EOF
+    while (std::getline(file_, line)) {
+        stats_.rows_read++;
+        
+        // Skip empty/whitespace-only lines
+        if (line.empty() || (line.find_first_not_of(" \t\r\n") == std::string::npos)) {
+            stats_.rows_discarded++;
+            continue; // Try next line
+        }
+        
+        // Try to parse the line
+        if (parse_line(line, record)) {
+            stats_.rows_parsed_ok++;
+            return true; // Successfully parsed a record
+        } else {
+            stats_.rows_discarded++;
+            // Continue to next line even if parsing failed
+            continue;
+        }
     }
+    
+    // EOF reached or read error
+    return false;
 }
 
 bool CsvReader::parse_line(const std::string& line, TripRecord& record) {
@@ -206,10 +210,10 @@ std::vector<std::string> CsvReader::split_csv_line(const std::string& line) {
 
 std::int64_t CsvReader::parse_timestamp(const std::string& timestamp_str) {
     /**
-     * Parse TLC timestamp format: "YYYY-MM-DD HH:MM:SS"
+     * Parse TLC timestamp format: "YYYY MMM DD HH:MM:SS AM/PM"
      * Returns seconds since Unix epoch (UTC)
      * 
-     * Example: "2018-01-01 00:15:30" -> 1514760930
+     * Example: "2018 Nov 04 12:32:24 PM" -> epoch seconds
      * 
      * Note: TLC data timestamps are in EST/EDT, but for Phase 1 we'll
      * parse them as UTC-equivalent for simplicity. This is acceptable
@@ -221,23 +225,69 @@ std::int64_t CsvReader::parse_timestamp(const std::string& timestamp_str) {
     }
 
     try {
-        // TLC format: "YYYY-MM-DD HH:MM:SS"
         std::tm tm = {};
         std::istringstream ss(timestamp_str);
+        std::string month_str, ampm;
+        int year, day, hour, min, sec;
         
-        // Parse date and time
-        ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
+        // Parse format: "YYYY MMM DD HH:MM:SS AM/PM"
+        // Example: "2018 Nov 04 12:32:24 PM"
+        ss >> year >> month_str >> day >> hour;
+        
+        // Read the time part (MM:SS)
+        char colon1, colon2;
+        ss >> colon1 >> min >> colon2 >> sec >> ampm;
         
         if (ss.fail()) {
-            return 0; // Parsing failed
+            // Try alternative format: "YYYY-MM-DD HH:MM:SS"
+            ss.clear();
+            ss.str(timestamp_str);
+            ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
+            if (ss.fail()) {
+                return 0;
+            }
+            // Use the parsed tm structure
+            year = tm.tm_year + 1900;
+            month_str = "";
+            day = tm.tm_mday;
+            hour = tm.tm_hour;
+            min = tm.tm_min;
+            sec = tm.tm_sec;
+            ampm = "";
+        } else {
+            // Convert month name to number
+            const char* months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+            int month = 0;
+            for (int i = 0; i < 12; ++i) {
+                if (month_str == months[i]) {
+                    month = i + 1;
+                    break;
+                }
+            }
+            if (month == 0) {
+                return 0; // Invalid month
+            }
+            
+            // Convert 12-hour to 24-hour format
+            std::transform(ampm.begin(), ampm.end(), ampm.begin(), ::toupper);
+            if (ampm == "PM" && hour != 12) {
+                hour += 12;
+            } else if (ampm == "AM" && hour == 12) {
+                hour = 0;
+            }
+            
+            tm.tm_year = year - 1900;
+            tm.tm_mon = month - 1;
+            tm.tm_mday = day;
+            tm.tm_hour = hour;
+            tm.tm_min = min;
+            tm.tm_sec = sec;
         }
         
         // Calculate seconds since Unix epoch (1970-01-01 00:00:00 UTC)
-        // We'll do this manually to avoid timezone issues with mktime
-        
-        int year = tm.tm_year + 1900;
         int month = tm.tm_mon + 1;
-        int day = tm.tm_mday;
+        year = tm.tm_year + 1900;
         
         // Calculate days since epoch
         std::int64_t days_since_epoch = 0;
@@ -258,7 +308,7 @@ std::int64_t CsvReader::parse_timestamp(const std::string& timestamp_str) {
         }
         
         // Add days in current month (day is 1-indexed)
-        days_since_epoch += day - 1;
+        days_since_epoch += tm.tm_mday - 1;
         
         // Convert to seconds
         std::int64_t seconds = days_since_epoch * 86400LL; // 86400 seconds per day
