@@ -61,11 +61,32 @@ The build will create:
 # From the build directory
 ./bin/taxi_bench <path_to_csv_file> [num_runs]
 
-# Example:
+# Example with test data (fast, ~20ms per iteration):
+./bin/taxi_bench ../data/test_sample.csv 10
+
+# Example with full dataset (slow, ~14s per iteration):
 ./bin/taxi_bench ../data/2018_Yellow_Taxi_Trip_Data_20260216.csv 10
 ```
 
-## Downloading Data
+**Note**: For quick testing, use `data/test_sample.csv` (10K rows, ~1.2MB). For final benchmarks, use the full dataset.
+
+## Test Data
+
+A small test dataset (`data/test_sample.csv`) is included for quick testing and development:
+- **Size**: ~1.3 MB
+- **Records**: 10,000 rows
+- **Purpose**: Fast testing, can be committed to GitHub
+- **Usage**: `./build/bin/taxi_bench data/test_sample.csv 10` (~20ms per iteration)
+
+To create your own test sample from a larger dataset:
+```bash
+bash scripts/create_test_data.sh [input_file] [num_rows] [output_file]
+
+# Example: Extract 5000 rows
+bash scripts/create_test_data.sh data/large_file.csv 5000 data/my_test.csv
+```
+
+## Downloading Full Data
 
 The `scripts/download_tlc_data.sh` script automates downloading TLC Yellow Taxi Trip Data from NYC OpenData.
 
@@ -93,7 +114,7 @@ The script will:
 - Skip files that already exist
 - Show progress and summary
 
-**Note**: The assignment requires datasets totaling >12 GB and >2 million records. You may need multiple monthly/yearly datasets.
+**Note**: The assignment requires datasets totaling >12 GB and >2 million records. You may need multiple monthly/yearly datasets. Large data files are gitignored - only `test_sample.csv` is committed.
 
 ## Testing
 

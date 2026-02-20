@@ -13,14 +13,19 @@ using namespace taxi;
  * @brief Time a function call and return average milliseconds over multiple runs.
  * 
  * Uses steady_clock for accurate timing measurements.
+ * Optionally shows progress for long-running benchmarks.
  */
 template<typename Func>
-double time_function_ms(Func&& func, int num_runs) {
+double time_function_ms(Func&& func, int num_runs, bool show_progress = false) {
     if (num_runs <= 0) return 0.0;
 
     auto start = std::chrono::steady_clock::now();
     for (int i = 0; i < num_runs; ++i) {
         func();
+        if (show_progress && num_runs > 3 && (i + 1) % std::max(1, num_runs / 5) == 0) {
+            std::cout << "      Progress: " << (i + 1) << "/" << num_runs << " iterations...\n";
+            std::cout.flush();
+        }
     }
     auto end = std::chrono::steady_clock::now();
     
@@ -74,11 +79,15 @@ int main(int argc, char* argv[]) {
         // Benchmark: Load CSV
         std::cout << "[1/3] Benchmarking CSV load...\n";
         std::cout << "      Running " << num_runs << " iterations...\n";
+        if (num_runs > 3) {
+            std::cout << "      (This may take a while for large datasets)\n";
+        }
+        std::cout.flush();
         
         double load_avg_ms = time_function_ms([&csv_path]() {
             DatasetManager manager;
             manager.load_from_csv(csv_path);
-        }, num_runs);
+        }, num_runs, true);
 
         // Load once for statistics and search benchmarks
         DatasetManager manager;
@@ -108,11 +117,12 @@ int main(int argc, char* argv[]) {
         // Benchmark: Search by fare
         std::cout << "[2/3] Benchmarking search_by_fare(10.0, 50.0)...\n";
         std::cout << "      Running " << num_runs << " iterations...\n";
+        std::cout.flush();
         
         std::vector<const TripRecord*> fare_results;
         double search_fare_avg_ms = time_function_ms([&manager, &fare_results]() {
             fare_results = manager.search_by_fare(10.0, 50.0);
-        }, num_runs);
+        }, num_runs, num_runs > 5);
         
         std::cout << std::setprecision(2);
         std::cout << "      ✓ Average search time: " << search_fare_avg_ms << " ms\n";
@@ -122,11 +132,12 @@ int main(int argc, char* argv[]) {
         // Benchmark: Search by distance
         std::cout << "[3/3] Benchmarking search_by_distance(1.0, 5.0)...\n";
         std::cout << "      Running " << num_runs << " iterations...\n";
+        std::cout.flush();
         
         std::vector<const TripRecord*> distance_results;
         double search_distance_avg_ms = time_function_ms([&manager, &distance_results]() {
             distance_results = manager.search_by_distance(1.0, 5.0);
-        }, num_runs);
+        }, num_runs, num_runs > 5);
         
         std::cout << "      ✓ Average search time: " << search_distance_avg_ms << " ms\n";
         std::cout << "      ✓ Matches found: " << distance_results.size() << "\n";

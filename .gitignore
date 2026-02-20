@@ -52,5 +52,8 @@ cmake_install.cmake
 Makefile
 *.cmake
 
-# data/
-data/
+# data/ - ignore large data files
+data/*
+# But allow test_sample.csv for team reference
+!data/test_sample.csv
+!data/.gitkeep
