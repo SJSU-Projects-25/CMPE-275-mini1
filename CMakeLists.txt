@@ -46,6 +46,13 @@ add_executable(taxi_bench
 
 target_link_libraries(taxi_bench PRIVATE taxi_core)
 
+# Test executable: test_csv_reader (temporary, for Step 4 validation)
+add_executable(test_csv_reader
+    src/test_csv_reader.cpp
+)
+
+target_link_libraries(test_csv_reader PRIVATE taxi_core)
+
 # Set output directories
 set_target_properties(taxi_core taxi_bench PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
