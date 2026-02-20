@@ -22,6 +22,13 @@ cd "$PROJECT_ROOT"
 # Check if CMake is available
 if ! command -v cmake &> /dev/null; then
     echo "ERROR: CMake not found. Please install CMake 3.20 or newer."
+    echo ""
+    echo "Installation options:"
+    echo "  macOS (Homebrew):  brew install cmake"
+    echo "  Linux (apt):       sudo apt-get install cmake"
+    echo "  Linux (yum):       sudo yum install cmake"
+    echo "  Or download from:  https://cmake.org/download/"
+    echo ""
     exit 1
 fi
 
