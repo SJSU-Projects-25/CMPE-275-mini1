@@ -66,6 +66,13 @@ add_executable(test_csv_reader
 
 target_link_libraries(test_csv_reader PRIVATE taxi_core)
 
+# Test executable: test_query_engine (Phase 2 Step 5 validation)
+add_executable(test_query_engine
+    src/test_query_engine.cpp
+)
+
+target_link_libraries(test_query_engine PRIVATE taxi_core)
+
 # Set output directories
 set_target_properties(taxi_core taxi_bench PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
