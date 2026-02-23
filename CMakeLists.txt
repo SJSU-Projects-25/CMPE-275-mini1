@@ -19,6 +19,13 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 endif()
 
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    message(STATUS "OpenMP found: version ${OpenMP_CXX_VERSION}")
+else()
+    message(WARNING "OpenMP not found — building serial-only version")
+endif()
+
 # Build type defaults to Release if not specified
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
@@ -32,12 +39,18 @@ add_library(taxi_core
     src/TripRecord.cpp
     src/CsvReader.cpp
     src/DatasetManager.cpp
+    src/TimeIndex.cpp
+    src/QueryEngine.cpp
 )
 
 target_include_directories(taxi_core PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
+
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(taxi_core PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 # Executable target: taxi_bench (benchmark harness)
 add_executable(taxi_bench
