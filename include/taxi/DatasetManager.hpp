@@ -1,6 +1,7 @@
 #pragma once
 
 #include "taxi/TripRecord.hpp"
+#include "taxi/QueryEngine.hpp"
 #include <string>
 #include <vector>
 #include <memory>
@@ -83,9 +84,15 @@ public:
 
     LoadStats get_load_stats() const { return load_stats_; }
 
+    /**
+     * @brief Access the query engine (builds indexes on first call).
+     */
+    QueryEngine& query_engine();
+
 private:
     std::vector<TripRecord> records_;
     LoadStats load_stats_;
+    std::unique_ptr<QueryEngine> query_engine_;
 
     /**
      * @brief Reserve memory if we can estimate size (for performance).

@@ -48,6 +48,15 @@ void DatasetManager::load_from_csv(const std::string& csv_path) {
 void DatasetManager::clear() {
     records_.clear();
     load_stats_ = LoadStats();
+    query_engine_.reset();
+}
+
+QueryEngine& DatasetManager::query_engine() {
+    if (!query_engine_) {
+        query_engine_ = std::make_unique<QueryEngine>(records_);
+        query_engine_->build_indexes();
+    }
+    return *query_engine_;
 }
 
 std::vector<const TripRecord*> DatasetManager::search_by_fare(double min_fare, double max_fare) const {
