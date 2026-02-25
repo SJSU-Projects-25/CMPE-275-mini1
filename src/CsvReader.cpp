@@ -85,10 +85,8 @@ bool CsvReader::parse_line(const std::string& line, TripRecord& record) {
     try {
         auto tokens = split_csv_line(line);
         
-        // Validate we have the expected number of fields
-        constexpr std::size_t EXPECTED_FIELDS = 17;
-        if (tokens.size() != EXPECTED_FIELDS) {
-            return false; // Wrong number of fields - discard row
+        if (tokens.size() < 17 || tokens.size() > 19) {
+            return false;
         }
 
         // Helper lambda to safely parse integer with default
@@ -209,117 +207,78 @@ std::vector<std::string> CsvReader::split_csv_line(const std::string& line) {
 }
 
 std::int64_t CsvReader::parse_timestamp(const std::string& timestamp_str) {
-    /**
-     * Parse TLC timestamp format: "YYYY MMM DD HH:MM:SS AM/PM"
-     * Returns seconds since Unix epoch (UTC)
-     * 
-     * Example: "2018 Nov 04 12:32:24 PM" -> epoch seconds
-     * 
-     * Note: TLC data timestamps are in EST/EDT, but for Phase 1 we'll
-     * parse them as UTC-equivalent for simplicity. This is acceptable
-     * for relative comparisons and range queries.
-     */
-    
     if (timestamp_str.empty()) {
         return 0;
     }
 
     try {
-        std::tm tm = {};
-        std::istringstream ss(timestamp_str);
-        std::string month_str, ampm;
-        int year, day, hour, min, sec;
-        
-        // Parse format: "YYYY MMM DD HH:MM:SS AM/PM"
-        // Example: "2018 Nov 04 12:32:24 PM"
-        ss >> year >> month_str >> day >> hour;
-        
-        // Read the time part (MM:SS)
-        char colon1, colon2;
-        ss >> colon1 >> min >> colon2 >> sec >> ampm;
-        
-        if (ss.fail()) {
-            // Try alternative format: "YYYY-MM-DD HH:MM:SS"
-            ss.clear();
-            ss.str(timestamp_str);
-            ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
-            if (ss.fail()) {
-                return 0;
-            }
-            // Use the parsed tm structure
-            year = tm.tm_year + 1900;
-            month_str = "";
-            day = tm.tm_mday;
-            hour = tm.tm_hour;
-            min = tm.tm_min;
-            sec = tm.tm_sec;
-            ampm = "";
-        } else {
-            // Convert month name to number
-            const char* months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-            int month = 0;
+        int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+        std::string ampm;
+
+        if (timestamp_str.size() >= 2 && timestamp_str[2] == '/') {
+            // Format: "MM/DD/YYYY HH:MM:SS AM/PM"
+            char slash1, slash2, colon1, colon2;
+            std::istringstream ss(timestamp_str);
+            ss >> month >> slash1 >> day >> slash2 >> year
+               >> hour >> colon1 >> min >> colon2 >> sec >> ampm;
+            if (ss.fail()) return 0;
+        } else if (timestamp_str.size() >= 4 &&
+                   std::isdigit(static_cast<unsigned char>(timestamp_str[0])) &&
+                   std::isdigit(static_cast<unsigned char>(timestamp_str[3]))) {
+            // Format: "YYYY MMM DD HH:MM:SS AM/PM"
+            std::string month_str;
+            char colon1, colon2;
+            std::istringstream ss(timestamp_str);
+            ss >> year >> month_str >> day >> hour >> colon1 >> min >> colon2 >> sec >> ampm;
+            if (ss.fail()) return 0;
+
+            const char* months[] = {"Jan","Feb","Mar","Apr","May","Jun",
+                                    "Jul","Aug","Sep","Oct","Nov","Dec"};
             for (int i = 0; i < 12; ++i) {
-                if (month_str == months[i]) {
-                    month = i + 1;
-                    break;
-                }
+                if (month_str == months[i]) { month = i + 1; break; }
             }
-            if (month == 0) {
-                return 0; // Invalid month
-            }
-            
-            // Convert 12-hour to 24-hour format
+            if (month == 0) return 0;
+        } else {
+            // Format: "YYYY-MM-DD HH:MM:SS" (24-hour, no AM/PM)
+            std::tm tm = {};
+            std::istringstream ss(timestamp_str);
+            ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
+            if (ss.fail()) return 0;
+            year  = tm.tm_year + 1900;
+            month = tm.tm_mon + 1;
+            day   = tm.tm_mday;
+            hour  = tm.tm_hour;
+            min   = tm.tm_min;
+            sec   = tm.tm_sec;
+        }
+
+        // 12-hour to 24-hour conversion when AM/PM is present
+        if (!ampm.empty()) {
             std::transform(ampm.begin(), ampm.end(), ampm.begin(), ::toupper);
-            if (ampm == "PM" && hour != 12) {
-                hour += 12;
-            } else if (ampm == "AM" && hour == 12) {
-                hour = 0;
-            }
-            
-            tm.tm_year = year - 1900;
-            tm.tm_mon = month - 1;
-            tm.tm_mday = day;
-            tm.tm_hour = hour;
-            tm.tm_min = min;
-            tm.tm_sec = sec;
+            if (ampm == "PM" && hour != 12) hour += 12;
+            else if (ampm == "AM" && hour == 12) hour = 0;
         }
-        
-        // Calculate seconds since Unix epoch (1970-01-01 00:00:00 UTC)
-        int month = tm.tm_mon + 1;
-        year = tm.tm_year + 1900;
-        
-        // Calculate days since epoch
+
+        // Days since Unix epoch
         std::int64_t days_since_epoch = 0;
-        
-        // Days from 1970 to (year-1)
         for (int y = 1970; y < year; ++y) {
-            bool is_leap = ((y % 4 == 0 && y % 100 != 0) || (y % 400 == 0));
-            days_since_epoch += is_leap ? 366 : 365;
+            bool leap = ((y % 4 == 0 && y % 100 != 0) || (y % 400 == 0));
+            days_since_epoch += leap ? 366 : 365;
         }
-        
-        // Days in months before current month in current year
-        int days_in_month[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-        bool is_leap = ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0));
-        if (is_leap) days_in_month[1] = 29;
-        
-        for (int m = 0; m < month - 1; ++m) {
+        int days_in_month[] = {31,28,31,30,31,30,31,31,30,31,30,31};
+        if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0))
+            days_in_month[1] = 29;
+        for (int m = 0; m < month - 1; ++m)
             days_since_epoch += days_in_month[m];
-        }
-        
-        // Add days in current month (day is 1-indexed)
-        days_since_epoch += tm.tm_mday - 1;
-        
-        // Convert to seconds
-        std::int64_t seconds = days_since_epoch * 86400LL; // 86400 seconds per day
-        seconds += static_cast<std::int64_t>(tm.tm_hour) * 3600LL;
-        seconds += static_cast<std::int64_t>(tm.tm_min) * 60LL;
-        seconds += static_cast<std::int64_t>(tm.tm_sec);
-        
-        return seconds;
-        
+        days_since_epoch += day - 1;
+
+        return days_since_epoch * 86400LL
+             + static_cast<std::int64_t>(hour) * 3600LL
+             + static_cast<std::int64_t>(min)  * 60LL
+             + static_cast<std::int64_t>(sec);
+
     } catch (const std::exception&) {
-        return 0; // Parsing failed
+        return 0;
     }
 }
 

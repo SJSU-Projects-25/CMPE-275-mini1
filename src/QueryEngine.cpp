@@ -22,7 +22,8 @@ QueryResult QueryEngine::search_by_time(const TimeRangeQuery& q) const {
     QueryResult result;
 
     if (time_index_.is_built()) {
-        auto [lo, hi] = time_index_.lookup(data_, q.start_time, q.end_time);
+        auto [lo_, hi_] = time_index_.lookup(data_, q.start_time, q.end_time);
+        const std::size_t lo = lo_, hi = hi_;
         const auto& idx = time_index_.sorted_indices();
         result.scanned = hi - lo;
 
@@ -180,8 +181,9 @@ QueryResult QueryEngine::search_combined(const CombinedQuery& q) const {
     QueryResult result;
 
     if (time_index_.is_built()) {
-        auto [lo, hi] = time_index_.lookup(
+        auto [lo_, hi_] = time_index_.lookup(
             data_, q.time_range.start_time, q.time_range.end_time);
+        const std::size_t lo = lo_, hi = hi_;
         const auto& idx = time_index_.sorted_indices();
         result.scanned = hi - lo;
 
@@ -249,7 +251,8 @@ AggregationResult QueryEngine::aggregate_fare_by_time(const TimeRangeQuery& q) c
     AggregationResult result;
 
     if (time_index_.is_built()) {
-        auto [lo, hi] = time_index_.lookup(data_, q.start_time, q.end_time);
+        auto [lo_, hi_] = time_index_.lookup(data_, q.start_time, q.end_time);
+        const std::size_t lo = lo_, hi = hi_;
         const auto& idx = time_index_.sorted_indices();
         result.count = hi - lo;
 
