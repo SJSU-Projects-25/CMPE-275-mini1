@@ -1,0 +1,336 @@
+=== Scaling Benchmark Run: Fri Mar  6 11:16:23 PST 2026 ===
+
+--- AoS t=1 (copied from bench_phase1_local.csv) ---
+phase,query,dataset_size,threads,avg_ms,stddev_ms,min_ms,max_ms,runs,matches,extra_val
+Phase1_serial,LOAD,94589581,1,192869.9692,17387.9254,154435.6460,222228.6910,10,94589581,0.0000
+Phase1_serial,Q1,94589581,1,3073.9226,7022.2854,732.1210,23058.3940,10,94589579,0.0000
+Phase1_serial,Q2,94589581,1,73680.6556,7180.0146,64572.4420,83794.8210,10,59430341,0.0000
+Phase1_serial,Q3,94589581,1,75778.7248,6216.7535,66922.9220,85661.1840,10,76768430,0.0000
+Phase1_serial,Q4,94589581,1,75996.4180,8452.5185,62581.2170,86016.2290,10,44721265,0.0000
+Phase1_serial,Q5,94589581,1,73117.8877,7860.5417,63429.7860,88161.8230,10,89056440,0.0000
+Phase1_serial,Q6,94589581,1,74031.9287,3437.8395,68502.7450,79001.9880,10,94589581,13.9134
+Phase1_serial,TOTAL_PHASE,94589581,1,5938703.5480,0.0000,5938703.5480,5938703.5480,1,0,0.0000
+
+--- AoS t=8 (copied from bench_phase2_local.csv) ---
+phase,query,dataset_size,threads,avg_ms,stddev_ms,min_ms,max_ms,runs,matches,extra_val
+Phase2_parallel,LOAD,94589581,8,250683.9454,30683.2696,172640.3580,280268.6010,10,94589581,0.0000
+Phase2_parallel,Q1,94589581,8,1776.3433,1751.3676,1171.4340,6757.3270,10,94589579,0.0000
+Phase2_parallel,Q2,94589581,8,31147.3264,3001.7991,27335.1550,37098.2070,10,59430341,0.0000
+Phase2_parallel,Q3,94589581,8,31454.4571,3252.5531,25860.6700,35331.6500,10,76768430,0.0000
+Phase2_parallel,Q4,94589581,8,32042.9438,2742.1252,25607.3110,35605.9340,10,44721265,0.0000
+Phase2_parallel,Q5,94589581,8,42614.2604,2974.6075,38495.4990,47327.3590,10,89056440,0.0000
+Phase2_parallel,Q6,94589581,8,32571.3810,2558.4958,28419.9830,36437.3920,10,94589581,13.9134
+Phase2_parallel,TOTAL_PHASE,94589581,8,4453383.8340,0.0000,4453383.8340,4453383.8340,1,0,0.0000
+
+--- AoS t=2 (new run) ---
+================================================================
+CMPE 275 Mini1 — Full Benchmark CLI  (Phase2_parallel)
+================================================================
+CSV files     : /Users/shamathmika/Downloads/taxi_data/2020.csv
+               /Users/shamathmika/Downloads/taxi_data/2021.csv
+               /Users/shamathmika/Downloads/taxi_data/2022.csv
+Runs/query    : 10
+Queries       : all
+Load threads  : 2
+Query threads : 2
+Layout        : Array-of-Structs (AoS)
+Output        : CMPE-275-mini1/results/benchmarks/scaling/scaling_aos_t2.csv
+================================================================
+
+[Load] Parallel CSV load (2 threads, 3 file(s))...
+  Records loaded : 94589581
+  Rows read      : 95208669
+  Parse success  : 99.35%
+  avg 303030.88 ms  ±10666.32  min 278593.43  max 313403.14 ms
+
+[Index] Building time index...
+  Index build time: 169736.98 ms
+
+[Q1] Running 10 iterations...
+  avg 2116.486 ms  ±4166.757  min 704.118  max 13974.085  matches 94589579
+
+[Q2] Running 10 iterations...
+  avg 56699.402 ms  ±7553.312  min 43498.374  max 67094.632  matches 59430341
+
+[Q3] Running 10 iterations...
+  avg 57967.142 ms  ±3148.146  min 52649.846  max 61758.775  matches 76768430
+
+[Q4] Running 10 iterations...
+  avg 57115.808 ms  ±5492.118  min 43517.795  max 62200.740  matches 44721265
+
+[Q5] Running 10 iterations...
+  avg 57535.267 ms  ±4150.374  min 49829.913  max 62317.490  matches 89056440
+
+[Q6] Running 10 iterations...
+  avg 53844.687 ms  ±4951.774  min 47592.462  max 60292.671  matches 94589581  avg_fare $13.91
+
+
+=== Total Phase Wall-Clock Time ===
+  6133728.7 ms  (102.2 min)
+
+=== Summary ===
+-------------------------------------------------------------------------------------------------------------------
+Phase             Query           Threads    Avg(ms)   Std(ms) Min(ms) Max(ms)   Matches
+-------------------------------------------------------------------------------------------------------------------
+Phase2_parallel   LOAD            2       303030.879 10666.322278593.428313403.139  94589581
+Phase2_parallel   Q1              2         2116.486  4166.757 704.11813974.085  94589579
+Phase2_parallel   Q2              2        56699.402  7553.31243498.37467094.632  59430341
+Phase2_parallel   Q3              2        57967.142  3148.14652649.84661758.775  76768430
+Phase2_parallel   Q4              2        57115.808  5492.11843517.79562200.740  44721265
+Phase2_parallel   Q5              2        57535.267  4150.37449829.91362317.490  89056440
+Phase2_parallel   Q6              2        53844.687  4951.77447592.46260292.671  94589581
+Phase2_parallel   TOTAL_PHASE     2       6133728.659     0.0006133728.6596133728.659         0
+-------------------------------------------------------------------------------------------------------------------
+
+
+--- AoS t=4 (new run) ---
+================================================================
+CMPE 275 Mini1 — Full Benchmark CLI  (Phase2_parallel)
+================================================================
+CSV files     : /Users/shamathmika/Downloads/taxi_data/2020.csv
+               /Users/shamathmika/Downloads/taxi_data/2021.csv
+               /Users/shamathmika/Downloads/taxi_data/2022.csv
+Runs/query    : 10
+Queries       : all
+Load threads  : 4
+Query threads : 4
+Layout        : Array-of-Structs (AoS)
+Output        : CMPE-275-mini1/results/benchmarks/scaling/scaling_aos_t4.csv
+================================================================
+
+[Load] Parallel CSV load (4 threads, 3 file(s))...
+  Records loaded : 94589581
+  Rows read      : 95208669
+  Parse success  : 99.35%
+  avg 289743.52 ms  ±36985.34  min 197666.07  max 333742.85 ms
+
+[Index] Building time index...
+  Index build time: 172466.20 ms
+
+[Q1] Running 10 iterations...
+  avg 2305.395 ms  ±2800.082  min 1236.632  max 10214.130  matches 94589579
+
+[Q2] Running 10 iterations...
+  avg 40806.467 ms  ±4925.306  min 34285.220  max 50706.822  matches 59430341
+
+[Q3] Running 10 iterations...
+  avg 40763.105 ms  ±2191.898  min 37467.400  max 45289.990  matches 76768430
+
+[Q4] Running 10 iterations...
+  avg 39446.059 ms  ±4124.597  min 31725.393  max 45439.403  matches 44721265
+
+[Q5] Running 10 iterations...
+  avg 56340.201 ms  ±5541.525  min 43456.277  max 61711.074  matches 89056440
+
+[Q6] Running 10 iterations...
+  avg 38977.494 ms  ±3254.106  min 33769.688  max 45234.948  matches 94589581  avg_fare $13.91
+
+
+=== Total Phase Wall-Clock Time ===
+  5355408.2 ms  (89.3 min)
+
+=== Summary ===
+-------------------------------------------------------------------------------------------------------------------
+Phase             Query           Threads    Avg(ms)   Std(ms) Min(ms) Max(ms)   Matches
+-------------------------------------------------------------------------------------------------------------------
+Phase2_parallel   LOAD            4       289743.521 36985.336197666.069333742.853  94589581
+Phase2_parallel   Q1              4         2305.395  2800.0821236.63210214.130  94589579
+Phase2_parallel   Q2              4        40806.467  4925.30634285.22050706.822  59430341
+Phase2_parallel   Q3              4        40763.105  2191.89837467.40045289.990  76768430
+Phase2_parallel   Q4              4        39446.059  4124.59731725.39345439.403  44721265
+Phase2_parallel   Q5              4        56340.201  5541.52543456.27761711.074  89056440
+Phase2_parallel   Q6              4        38977.494  3254.10633769.68845234.948  94589581
+Phase2_parallel   TOTAL_PHASE     4       5355408.195     0.0005355408.1955355408.195         0
+-------------------------------------------------------------------------------------------------------------------
+
+--- SoA t=1 (copied from bench_phase3b_local.csv) ---
+phase,query,dataset_size,threads,avg_ms,stddev_ms,min_ms,max_ms,runs,matches,extra_val
+Phase3_soa_direct,LOAD,94589581,1,171829.3802,9825.0053,153700.2290,180116.9450,10,94589581,0.0000
+Phase3_soa_direct,Q1,94589581,1,685.9603,316.4748,264.2190,1512.2410,10,94589579,0.0000
+Phase3_soa_direct,Q2,94589581,1,2525.5127,5605.9492,637.6000,18479.1420,10,59430341,0.0000
+Phase3_soa_direct,Q3,94589581,1,2457.6466,5732.8223,496.6250,18772.4900,10,76768430,0.0000
+Phase3_soa_direct,Q4,94589581,1,1569.5463,3508.0755,365.8650,11551.5270,10,44721265,0.0000
+Phase3_soa_direct,Q5,94589581,1,2120.8192,2169.9484,1374.0530,8294.5860,10,89056440,0.0000
+Phase3_soa_direct,Q6,94589581,1,2134.9262,6356.6516,109.6640,20225.8820,10,94589581,13.9134
+Phase3_soa_direct,TOTAL_PHASE,94589581,1,1869070.1970,0.0000,1869070.1970,1869070.1970,1,0,0.0000
+
+--- SoA-direct t=2 start: Fri Mar  6 12:48:34 PST 2026 ---
+================================================================
+CMPE 275 Mini1 — Full Benchmark CLI  (Phase3_soa_direct)
+================================================================
+CSV files     : /Users/shamathmika/Downloads/taxi_data/2020.csv
+               /Users/shamathmika/Downloads/taxi_data/2021.csv
+               /Users/shamathmika/Downloads/taxi_data/2022.csv
+Runs/query    : 10
+Queries       : all
+Load threads  : 2
+Query threads : 2
+Layout        : SoA direct from CSV
+Output        : CMPE-275-mini1/results/benchmarks/scaling/scaling_soa_t2.csv
+================================================================
+
+[Load] Direct CSV → SoA load (serial, 3 file(s))...
+  Records loaded : 94589581
+  avg 175986.34 ms  ±12458.14  min 151664.12  max 184556.33 ms
+
+[Index] Building SoA time index...
+  Index build time: 24459.08 ms
+
+[Q1] Running 10 iterations (SoA direct)...
+  avg 740.103 ms  ±81.933  min 596.043  max 821.434  matches 94589579
+
+[Q2] Running 10 iterations (SoA direct)...
+  avg 1550.508 ms  ±3723.291  min 251.817  max 12145.657  matches 59430341
+
+[Q3] Running 10 iterations (SoA direct)...
+  avg 1595.998 ms  ±2268.922  min 821.655  max 8052.858  matches 76768430
+
+[Q4] Running 10 iterations (SoA direct)...
+  avg 1101.626 ms  ±1661.946  min 274.280  max 5763.187  matches 44721265
+
+[Q5] Running 10 iterations (SoA direct)...
+  avg 1935.996 ms  ±1982.591  min 1225.009  max 7576.571  matches 89056440
+
+[Q6] Running 10 iterations (SoA direct)...
+  avg 931.168 ms  ±2646.556  min 60.918  max 8459.615  matches 94589581  avg_fare $13.91
+
+
+=== Total Phase Wall-Clock Time ===
+  1875447.8 ms  (31.3 min)
+
+=== Summary ===
+-------------------------------------------------------------------------------------------------------------------
+Phase             Query           Threads    Avg(ms)   Std(ms) Min(ms) Max(ms)   Matches
+-------------------------------------------------------------------------------------------------------------------
+Phase3_soa_direct LOAD            1       175986.336 12458.144151664.118184556.333  94589581
+Phase3_soa_direct Q1              2          740.103    81.933 596.043 821.434  94589579
+Phase3_soa_direct Q2              2         1550.508  3723.291 251.81712145.657  59430341
+Phase3_soa_direct Q3              2         1595.998  2268.922 821.6558052.858  76768430
+Phase3_soa_direct Q4              2         1101.626  1661.946 274.2805763.187  44721265
+Phase3_soa_direct Q5              2         1935.996  1982.5911225.0097576.571  89056440
+Phase3_soa_direct Q6              2          931.168  2646.556  60.9188459.615  94589581
+Phase3_soa_direct TOTAL_PHASE     2       1875447.802     0.0001875447.8021875447.802         0
+-------------------------------------------------------------------------------------------------------------------
+
+--- SoA-direct t=2 done: Fri Mar  6 13:19:50 PST 2026 ---
+
+--- SoA-direct t=4 start: Fri Mar  6 13:19:50 PST 2026 ---
+================================================================
+CMPE 275 Mini1 — Full Benchmark CLI  (Phase3_soa_direct)
+================================================================
+CSV files     : /Users/shamathmika/Downloads/taxi_data/2020.csv
+               /Users/shamathmika/Downloads/taxi_data/2021.csv
+               /Users/shamathmika/Downloads/taxi_data/2022.csv
+Runs/query    : 10
+Queries       : all
+Load threads  : 4
+Query threads : 4
+Layout        : SoA direct from CSV
+Output        : CMPE-275-mini1/results/benchmarks/scaling/scaling_soa_t4.csv
+================================================================
+
+[Load] Direct CSV → SoA load (serial, 3 file(s))...
+  Records loaded : 94589581
+  avg 176544.93 ms  ±13998.14  min 152373.61  max 189994.13 ms
+
+[Index] Building SoA time index...
+  Index build time: 21186.45 ms
+
+[Q1] Running 10 iterations (SoA direct)...
+  avg 1087.458 ms  ±64.083  min 961.919  max 1222.485  matches 94589579
+
+[Q2] Running 10 iterations (SoA direct)...
+  avg 1400.472 ms  ±2361.012  min 530.918  max 8116.233  matches 59430341
+
+[Q3] Running 10 iterations (SoA direct)...
+  avg 1365.540 ms  ±1371.312  min 863.536  max 5267.075  matches 76768430
+
+[Q4] Running 10 iterations (SoA direct)...
+  avg 984.269 ms  ±1390.122  min 241.576  max 4883.256  matches 44721265
+
+[Q5] Running 10 iterations (SoA direct)...
+  avg 1951.528 ms  ±1253.210  min 1296.965  max 5235.069  matches 89056440
+
+[Q6] Running 10 iterations (SoA direct)...
+  avg 687.233 ms  ±1955.213  min 37.526  max 6247.302  matches 94589581  avg_fare $13.91
+
+
+=== Total Phase Wall-Clock Time ===
+  1873228.3 ms  (31.2 min)
+
+=== Summary ===
+-------------------------------------------------------------------------------------------------------------------
+Phase             Query           Threads    Avg(ms)   Std(ms) Min(ms) Max(ms)   Matches
+-------------------------------------------------------------------------------------------------------------------
+Phase3_soa_direct LOAD            1       176544.929 13998.140152373.613189994.128  94589581
+Phase3_soa_direct Q1              4         1087.458    64.083 961.9191222.485  94589579
+Phase3_soa_direct Q2              4         1400.472  2361.012 530.9188116.233  59430341
+Phase3_soa_direct Q3              4         1365.540  1371.312 863.5365267.075  76768430
+Phase3_soa_direct Q4              4          984.269  1390.122 241.5764883.256  44721265
+Phase3_soa_direct Q5              4         1951.528  1253.2101296.9655235.069  89056440
+Phase3_soa_direct Q6              4          687.233  1955.213  37.5266247.302  94589581
+Phase3_soa_direct TOTAL_PHASE     4       1873228.259     0.0001873228.2591873228.259         0
+-------------------------------------------------------------------------------------------------------------------
+
+--- SoA-direct t=4 done: Fri Mar  6 13:51:04 PST 2026 ---
+
+--- SoA-direct t=8 start: Fri Mar  6 13:51:04 PST 2026 ---
+================================================================
+CMPE 275 Mini1 — Full Benchmark CLI  (Phase3_soa_direct)
+================================================================
+CSV files     : /Users/shamathmika/Downloads/taxi_data/2020.csv
+               /Users/shamathmika/Downloads/taxi_data/2021.csv
+               /Users/shamathmika/Downloads/taxi_data/2022.csv
+Runs/query    : 10
+Queries       : all
+Load threads  : 8
+Query threads : 8
+Layout        : SoA direct from CSV
+Output        : CMPE-275-mini1/results/benchmarks/scaling/scaling_soa_t8.csv
+================================================================
+
+[Load] Direct CSV → SoA load (serial, 3 file(s))...
+  Records loaded : 94589581
+  avg 175865.13 ms  ±12824.05  min 152756.44  max 188556.12 ms
+
+[Index] Building SoA time index...
+  Index build time: 25007.31 ms
+
+[Q1] Running 10 iterations (SoA direct)...
+  avg 1138.256 ms  ±61.350  min 1060.905  max 1285.038  matches 94589579
+
+[Q2] Running 10 iterations (SoA direct)...
+  avg 1090.218 ms  ±1849.522  min 283.500  max 6341.727  matches 59430341
+
+[Q3] Running 10 iterations (SoA direct)...
+  avg 1568.168 ms  ±1830.358  min 921.925  max 6775.640  matches 76768430
+
+[Q4] Running 10 iterations (SoA direct)...
+  avg 826.037 ms  ±785.686  min 471.983  max 3046.199  matches 44721265
+
+[Q5] Running 10 iterations (SoA direct)...
+  avg 1900.362 ms  ±1197.888  min 1412.670  max 5292.439  matches 89056440
+
+[Q6] Running 10 iterations (SoA direct)...
+  avg 661.425 ms  ±1911.650  min 32.949  max 6100.494  matches 94589581  avg_fare $13.91
+
+
+=== Total Phase Wall-Clock Time ===
+  1869009.4 ms  (31.2 min)
+
+=== Summary ===
+-------------------------------------------------------------------------------------------------------------------
+Phase             Query           Threads    Avg(ms)   Std(ms) Min(ms) Max(ms)   Matches
+-------------------------------------------------------------------------------------------------------------------
+Phase3_soa_direct LOAD            1       175865.133 12824.052152756.437188556.124  94589581
+Phase3_soa_direct Q1              8         1138.256    61.3501060.9051285.038  94589579
+Phase3_soa_direct Q2              8         1090.218  1849.522 283.5006341.727  59430341
+Phase3_soa_direct Q3              8         1568.168  1830.358 921.9256775.640  76768430
+Phase3_soa_direct Q4              8          826.037   785.686 471.9833046.199  44721265
+Phase3_soa_direct Q5              8         1900.362  1197.8881412.6705292.439  89056440
+Phase3_soa_direct Q6              8          661.425  1911.650  32.9496100.494  94589581
+Phase3_soa_direct TOTAL_PHASE     8       1869009.369     0.0001869009.3691869009.369         0
+-------------------------------------------------------------------------------------------------------------------
+
+--- SoA-direct t=8 done: Fri Mar  6 14:22:14 PST 2026 ---
+

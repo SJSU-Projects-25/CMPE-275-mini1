@@ -1,23 +1,23 @@
 # Benchmark Results Summary
 
-**Run date**: 2026-03-06 (00:45–04:20 PST)
-**Machine**: macOS (Apple Silicon / x86, 16 GB RAM)
-**Compiler**: GCC 13+ with OpenMP, `-O2`
-**Dataset**: NYC TLC Yellow Taxi Trip Records
+**Run date**: 2026-03-06 (00:45–04:20 PST) <br>
+**Machine**: macOS (Apple Silicon / x86, 8 GB RAM — 16+ GB swap in use during benchmarks) <br>
+**Compiler**: GCC 13+ with OpenMP, `-O2` <br>
+**Dataset**: NYC TLC Yellow Taxi Trip Records <br>
 
-Raw CSVs: `results/benchmarks/bench_phase*.csv`
+Raw CSVs: `results/benchmarks/bench_phase*.csv` <br>
 Plots: `results/plots/query_times.png`, `results/plots/speedup.png`, `results/plots/load_time.png`
 
 ---
 
 ## Dataset
 
-| Phase | Files | Records loaded | Rows read | Parse success |
-|---|---|---|---|---|
-| Phase 1 | 2020+2021+2022 | **94,589,581** | 95,208,669 | 99.35% |
-| Phase 2 | 2020+2021+2022 | **94,589,581** | 95,208,669 | 99.35% |
-| Phase 3a | 2023.csv only | **37,917,834** | 38,310,226 | 98.98% |
-| Phase 3b | 2020+2021+2022 | **94,589,581** | — | — |
+| Phase    | Files          | Records loaded | Rows read  | Parse success |
+| -------- | -------------- | -------------- | ---------- | ------------- |
+| Phase 1  | 2020+2021+2022 | **94,589,581** | 95,208,669 | 99.35%        |
+| Phase 2  | 2020+2021+2022 | **94,589,581** | 95,208,669 | 99.35%        |
+| Phase 3a | 2023.csv only  | **37,917,834** | 38,310,226 | 98.98%        |
+| Phase 3b | 2020+2021+2022 | **94,589,581** | —          | —             |
 
 619,088 rows discarded across Phases 1/2 (0.65%) — invalid timestamps or negative fares.
 
@@ -25,29 +25,29 @@ Plots: `results/plots/query_times.png`, `results/plots/speedup.png`, `results/pl
 
 ## Wall-Clock Phase Duration
 
-| Phase | Total wall time |
-|---|---|
-| Phase 1 (AoS serial) | **99.0 min** |
-| Phase 2 (AoS parallel 8T) | **74.2 min** |
-| Phase 3a (SoA from AoS, 2023 only) | **10.5 min** |
-| Phase 3b (SoA direct CSV, 3 CSVs) | **31.2 min** |
-| **Total** | **~3 h 35 min** |
+| Phase                              | Total wall time |
+| ---------------------------------- | --------------- |
+| Phase 1 (AoS serial)               | **99.0 min**    |
+| Phase 2 (AoS parallel 8T)          | **74.2 min**    |
+| Phase 3a (SoA from AoS, 2023 only) | **10.5 min**    |
+| Phase 3b (SoA direct CSV, 3 CSVs)  | **31.2 min**    |
+| **Total**                          | **~3 h 35 min** |
 
 ---
 
 ## Load Performance (avg over 10 runs)
 
-| Phase | Threads | Load avg (ms) | Load stddev (ms) | Load min (ms) | Notes |
-|---|---|---|---|---|---|
-| Phase 1 (AoS serial) | 1 | 192,870 | 17,388 | 154,436 | Baseline |
-| Phase 2 (AoS parallel) | 8 | 250,684 | 30,683 | 172,640 | **30% slower than serial** |
-| Phase 3a (AoS load of 2023) | 1 | 61,593 | 365 | 61,085 | Smaller dataset (~2.5× fewer records) |
-| Phase 3b (SoA direct) | 1 | 171,829 | 9,825 | 153,700 | **10.9% faster than Phase 1** |
+| Phase                       | Threads | Load avg (ms) | Load stddev (ms) | Load min (ms) | Notes                                 |
+| --------------------------- | ------- | ------------- | ---------------- | ------------- | ------------------------------------- |
+| Phase 1 (AoS serial)        | 1       | 192,870       | 17,388           | 154,436       | Baseline                              |
+| Phase 2 (AoS parallel)      | 8       | 250,684       | 30,683           | 172,640       | **30% slower than serial**            |
+| Phase 3a (AoS load of 2023) | 1       | 61,593        | 365              | 61,085        | Smaller dataset (~2.5× fewer records) |
+| Phase 3b (SoA direct)       | 1       | 171,829       | 9,825            | 153,700       | **10.9% faster than Phase 1**         |
 
 **Key finding — parallel load degradation**: Phase 2 uses 8 threads to load 3 CSV files, but disk
 I/O is the bottleneck, not CPU. Multiple threads competing for the same disk channels cause seek
 contention, increasing total load time by 30% vs serial. Parallel loading helps only on hardware
-with multiple independent I/O paths (e.g., NVMe RAID).
+with multiple independent I/O paths (e.g., NVMe RAID). <br>
 
 **Phase 3b load advantage**: Direct CSV→SoA avoids storing parsed `TripRecord` structs entirely.
 Each field is written directly into its typed column vector. The reduced memory pressure (no
@@ -59,22 +59,22 @@ intermediate AoS) results in marginally faster loading (~10.9% improvement).
 
 All queries scanned the full 94,589,581-record dataset. Times are averages over 10 runs.
 
-| Query | Description | Phase 1 AoS serial (ms) | Phase 2 AoS parallel 8T (ms) | Phase 3b SoA direct (ms) | P1→P2 speedup | P1→P3b speedup |
-|---|---|---|---|---|---|---|
-| Q1 | Time range (index-assisted) | 3,074 | 1,776 | 686 | 1.73× | **4.48×** |
-| Q2 | Distance 1–5 mi (full scan) | 73,681 | 31,147 | 2,526 | **2.37×** | **29.2×** |
-| Q3 | Fare $10–$50 (full scan) | 75,779 | 31,454 | 2,458 | **2.41×** | **30.8×** |
-| Q4 | Location ID 100–200 (full scan) | 75,996 | 32,043 | 1,570 | **2.37×** | **48.4×** |
-| Q5 | Combined: time+fare+pax (index+scan) | 73,118 | 42,614 | 2,121 | 1.72× | **34.5×** |
-| Q6 | Avg fare — full dataset reduction | 74,032 | 32,571 | 2,135 | **2.27×** | **34.7×** |
+| Query | Description                          | Phase 1 AoS serial (ms) | Phase 2 AoS parallel 8T (ms) | Phase 3b SoA direct (ms) | P1→P2 speedup | P1→P3b speedup |
+| ----- | ------------------------------------ | ----------------------- | ---------------------------- | ------------------------ | ------------- | -------------- |
+| Q1    | Time range (index-assisted)          | 3,074                   | 1,776                        | 686                      | 1.73×         | **4.48×**      |
+| Q2    | Distance 1–5 mi (full scan)          | 73,681                  | 31,147                       | 2,526                    | **2.37×**     | **29.2×**      |
+| Q3    | Fare $10–$50 (full scan)             | 75,779                  | 31,454                       | 2,458                    | **2.41×**     | **30.8×**      |
+| Q4    | Location ID 100–200 (full scan)      | 75,996                  | 32,043                       | 1,570                    | **2.37×**     | **48.4×**      |
+| Q5    | Combined: time+fare+pax (index+scan) | 73,118                  | 42,614                       | 2,121                    | 1.72×         | **34.5×**      |
+| Q6    | Avg fare — full dataset reduction    | 74,032                  | 32,571                       | 2,135                    | **2.27×**     | **34.7×**      |
 
 ### Index build time
 
-| Phase | Index type | Build time (ms) |
-|---|---|---|
-| Phase 1 | AoS TimeIndex (std::stable_sort) | 179,244 |
-| Phase 2 | AoS TimeIndex (std::stable_sort) | 156,103 |
-| Phase 3b | SoA time index (std::sort) | 24,618 |
+| Phase    | Index type                       | Build time (ms) |
+| -------- | -------------------------------- | --------------- |
+| Phase 1  | AoS TimeIndex (std::stable_sort) | 179,244         |
+| Phase 2  | AoS TimeIndex (std::stable_sort) | 156,103         |
+| Phase 3b | SoA time index (std::sort)       | 24,618          |
 
 SoA index builds **7.3× faster** — same O(N log N) algorithm but better cache performance during
 the sort pass (adjacent timestamps are contiguous in `pickup_timestamp[]`).
@@ -86,14 +86,14 @@ the sort pass (adjacent timestamps are contiguous in `pickup_timestamp[]`).
 Phase 3a uses a different dataset (2023 only) so absolute times cannot be directly compared to
 Phase 1/2/3b. Shown here for reference.
 
-| Query | Phase 3a SoA avg (ms) | Matches | Notes |
-|---|---|---|---|
-| Q1 | 0.001 | 60 | Querying Jan 2021 range — 2023 data has near-zero matches; O(log N) index |
-| Q2 | 176.3 | 22,877,491 | Distance 1–5 mi |
-| Q3 | 124.9 | 32,465,246 | Fare $10–$50 |
-| Q4 | 151.3 | 18,887,846 | Location ID 100–200 |
-| Q5 | 0.026 | 60 | Combined with Jan 2021 range — no matches in 2023 data |
-| Q6 | 49.4 | 37,917,834 | Full reduction; avg fare = **$19.90** (vs $13.91 for 2020–2022) |
+| Query | Phase 3a SoA avg (ms) | Matches    | Notes                                                                     |
+| ----- | --------------------- | ---------- | ------------------------------------------------------------------------- |
+| Q1    | 0.001                 | 60         | Querying Jan 2021 range — 2023 data has near-zero matches; O(log N) index |
+| Q2    | 176.3                 | 22,877,491 | Distance 1–5 mi                                                           |
+| Q3    | 124.9                 | 32,465,246 | Fare $10–$50                                                              |
+| Q4    | 151.3                 | 18,887,846 | Location ID 100–200                                                       |
+| Q5    | 0.026                 | 60         | Combined with Jan 2021 range — no matches in 2023 data                    |
+| Q6    | 49.4                  | 37,917,834 | Full reduction; avg fare = **$19.90** (vs $13.91 for 2020–2022)           |
 
 **AoS→SoA conversion cost**: 3,065 ms (one-time, at startup) for 37.9M records.
 
@@ -103,14 +103,14 @@ Phase 1/2/3b. Shown here for reference.
 
 All three phases (1, 2, 3b) returned identical match counts for every query:
 
-| Query | Matches |
-|---|---|
-| Q1 | 94,589,579 (≈ all records — time range spans dataset) |
-| Q2 | 59,430,341 |
-| Q3 | 76,768,430 |
-| Q4 | 44,721,265 |
-| Q5 | 89,056,440 |
-| Q6 | 94,589,581 — avg fare $13.91 |
+| Query | Matches                                               |
+| ----- | ----------------------------------------------------- |
+| Q1    | 94,589,579 (≈ all records — time range spans dataset) |
+| Q2    | 59,430,341                                            |
+| Q3    | 76,768,430                                            |
+| Q4    | 44,721,265                                            |
+| Q5    | 89,056,440                                            |
+| Q6    | 94,589,581 — avg fare $13.91                          |
 
 Identical match counts across all three phases confirm correctness of parallelization and SoA
 query implementations.
@@ -136,21 +136,27 @@ minimum times are the most representative of SoA's achievable throughput.
 All three PNG files are in `results/plots/`:
 
 ### `query_times.png`
+
 Grouped bar chart showing avg query time (ms) for Phase 1, Phase 2, and Phase 3b side by side
 for each query (Q1–Q6). **I-shaped bars (error bars) = ±1 standard deviation across the 10
 timed runs** — a tall I-bar means high run-to-run variance (e.g. Phase 3b SoA, due to cache
 warming), a short I-bar means consistent timing. Demonstrates:
+
 - Phase 3b bars are barely visible next to Phase 1/2 bars for Q2–Q6 due to 30–48× speedup
 - Q1 is fast in all phases (index-assisted)
 
 ### `speedup.png`
+
 Speedup ratio relative to Phase 1 baseline, separately for Phase 2 (parallelism gain) and Phase
 3b (SoA layout gain). Values > 1.0 = faster than Phase 1. Shows:
+
 - Phase 2 delivers consistent 2–2.4× speedup on full-scan queries from 8-thread parallelism
 - Phase 3b delivers 29–48× speedup on the same queries purely from memory layout improvement
 
 ### `load_time.png`
+
 Bar chart of average CSV load time per phase. I-bars = ±1 stddev (10 runs). Shows:
+
 - Parallel load (Phase 2) is counterintuitively **slower** than serial (Phase 1)
 - SoA direct load (Phase 3b) is slightly faster than serial AoS load (Phase 1)
 
@@ -159,8 +165,10 @@ Bar chart of average CSV load time per phase. I-bars = ±1 stddev (10 runs). Sho
 ## Key Findings
 
 ### 1. Memory layout dominates query performance
+
 SoA delivers **29–48× speedup** over serial AoS on identical data and hardware, with no
 parallelism — purely from cache line efficiency. A 64-byte cache line holds:
+
 - **0.5 TripRecords** in AoS (128-byte struct; only 8 bytes useful per scan)
 - **8 doubles** in SoA (8 doubles × 8 bytes = 64 bytes; 100% useful)
 
@@ -168,21 +176,114 @@ This is the fundamental insight: the bottleneck for scan-heavy workloads is not 
 memory bandwidth. Layout determines how much of each cache line fetch is wasted.
 
 ### 2. Parallelism provides significant but secondary gains
+
 Phase 2 (8-thread parallel queries) achieves **2.4× speedup** vs Phase 1. Combined with SoA
 layout, the theoretical maximum would be ~8× for linear scaling — actual results show SoA alone
 already exceeds this for most queries.
 
 ### 3. Parallel I/O loading hurts on single-disk hardware
+
 Phase 2's parallel CSV loader (8 threads, byte-range chunks) was **30% slower** than serial.
 Disk I/O is the bottleneck; multiple threads generate competing seeks on a single physical
 device. Parallel loading is only beneficial with multiple independent storage devices or
 SSDs with parallel read paths.
 
 ### 4. Direct CSV→SoA avoids the 2×N memory peak
+
 Phase 3a's `from_aos()` requires AoS + SoA simultaneously: ~23.8 GB peak for 3 CSVs (exceeds
 16 GB RAM). Phase 3b's `from_csv()` single-pass loads directly into SoA columns, keeping peak
 at ~11.9 GB. This enables SoA to run on the full 3-CSV dataset rather than only 2023.csv.
 
-### 5. Fare inflation visible in aggregate data
+### 5. Swap pressure inflates the SoA speedup magnitude
+
+The benchmark machine has only 8 GB of physical RAM, but the full 3-CSV dataset (94.6M rows)
+requires ~18–19 GB for AoS layout and ~12 GB for SoA. Activity Monitor confirmed **16+ GB of
+swap in use** during every phase. This has an asymmetric effect on the two layouts:
+
+- **AoS queries** access one or two fields per 128-byte struct, causing strided/random page
+  accesses across ~18 GB of virtual memory → frequent page faults → heavy swap I/O per query
+- **SoA queries** scan one column array at a time (8-byte doubles, contiguous) → purely
+  sequential access pattern → friendlier to OS prefetching even from swap
+
+As a result, the 29–48× speedup numbers observed here are likely **inflated vs. what a
+16–32 GB machine would show**. On adequate RAM, AoS queries would not be page-fault limited,
+and the gap would narrow — estimated 10–20× range for full-scan queries. The direction and
+ranking of results remains valid; the magnitude is hardware-constrained.
+
+---
+
+## Key Findings — Strong Scaling
+
+Scaling benchmarks ran at t=1, 2, 4, 8 threads for both AoS and SoA-direct on the full
+94.6M-record dataset (10 runs each). Plots in `results/plots/scaling/`.
+
+### S1. AoS scales sub-linearly — memory bandwidth is the ceiling
+
+| Query | t=1 (ms) | t=2 (ms) | t=4 (ms) | t=8 (ms) | Speedup 1→8 |
+|---|---|---|---|---|---|
+| Q2 | 73,681 | 56,699 | 40,806 | 31,147 | 2.37× |
+| Q3 | 75,779 | 57,967 | 40,763 | 31,454 | 2.41× |
+| Q4 | 75,996 | 57,116 | 39,446 | 32,043 | 2.37× |
+| Q5 | 73,118 | 57,535 | 56,340 | 42,614 | 1.72× |
+| Q6 | 74,032 | 53,845 | 38,977 | 32,571 | 2.27× |
+
+8 threads deliver only ~2.4× speedup instead of the ideal 8×. Each doubling of threads
+roughly halves the remaining gap to the bandwidth limit, not the query time. The bottleneck
+is not CPU cores — it is how fast data can be pulled from memory (or swap) into cache.
+
+### S2. Q5 barely scales in AoS — the index collapses parallelism
+
+Q5 (combined: time range + fare + passenger count) goes from 57,535 ms at t=2 to only
+56,340 ms at t=4 — a 1.02× improvement for doubling the threads. The time-range component
+uses a sorted index that serialises the search; the OMP threads then fight for the index
+data structure. This bottleneck makes Q5 the worst AoS scaler (1.72× at t=8 vs 2.4× for
+pure-scan queries).
+
+### S3. SoA is almost immune to additional threads
+
+| Query | t=1 (ms) | t=2 (ms) | t=4 (ms) | t=8 (ms) | Speedup 1→8 |
+|---|---|---|---|---|---|
+| Q2 | 2,526 | 1,551 | 1,400 | 1,090 | 2.32× |
+| Q3 | 2,458 | 1,596 | 1,366 | 1,568 | 1.57× |
+| Q4 | 1,570 | 1,102 | 984 | 826 | 1.90× |
+| Q5 | 2,121 | 1,936 | 1,952 | 1,900 | 1.12× |
+| Q6 | 2,135 | 931 | 687 | 661 | 3.23× |
+
+SoA's 1→8 thread speedup is only 1.1–3.2×, compared to 1.7–2.4× for AoS — a smaller
+absolute gain. Once data access is perfectly sequential and fits the prefetcher's pattern,
+adding threads mostly adds coordination overhead without feeding the CPU faster. The
+bottleneck shifted from memory bandwidth to OMP synchronisation overhead.
+
+**Q3 anomaly**: SoA t=8 (1,568 ms) is *slower* than t=4 (1,366 ms). With 8 GB RAM and
+~12 GB SoA working set in swap, 8 threads cause more simultaneous swap page requests than
+the OS prefetcher can satisfy, increasing contention and regressing performance.
+
+### S4. SoA at 1 thread beats AoS at 8 threads — by a large margin
+
+For every full-scan query (Q2–Q6), SoA serial outperforms AoS with maximum parallelism:
+
+| Query | AoS t=8 (ms) | SoA t=1 (ms) | SoA-t1 advantage |
+|---|---|---|---|
+| Q2 | 31,147 | 2,526 | **12.3×** |
+| Q3 | 31,454 | 2,458 | **12.8×** |
+| Q4 | 32,043 | 1,570 | **20.4×** |
+| Q5 | 42,614 | 2,121 | **20.1×** |
+| Q6 | 32,571 | 2,135 | **15.3×** |
+
+Q1 (index-assisted) is the only exception — AoS t=8 (1,776 ms) is close to SoA t=1 (686 ms),
+with only a 2.6× gap, because Q1 barely touches the raw arrays.
+
+### S5. SoA parallel scaling is dominated by high-variance runs
+
+SoA's per-run stddev is large relative to the mean (e.g., Q6 at t=1: avg 2,135 ms ± 6,357 ms).
+The first 1–2 iterations load SoA arrays cold from swap (~20 s); later iterations hit the OS
+page cache and run in ~60–110 ms. This warm/cold bimodal distribution inflates both the mean
+and variance. The practical takeaway: in a real workload where data is warm, SoA's throughput
+would be close to the minimum times (60–640 ms), not the averages shown here.
+
+---
+
+### 6. Fare inflation visible in aggregate data
+
 Q6 average fare: **$13.91** (2020–2022) vs **$19.90** (2023). Post-COVID rideshare demand
 recovery and NYC fare increases are reflected directly in the aggregation result.
