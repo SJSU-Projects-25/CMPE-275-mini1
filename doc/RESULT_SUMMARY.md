@@ -137,7 +137,9 @@ All three PNG files are in `results/plots/`:
 
 ### `query_times.png`
 Grouped bar chart showing avg query time (ms) for Phase 1, Phase 2, and Phase 3b side by side
-for each query (Q1–Q6). Error bars show ±1 stddev. Demonstrates:
+for each query (Q1–Q6). **I-shaped bars (error bars) = ±1 standard deviation across the 10
+timed runs** — a tall I-bar means high run-to-run variance (e.g. Phase 3b SoA, due to cache
+warming), a short I-bar means consistent timing. Demonstrates:
 - Phase 3b bars are barely visible next to Phase 1/2 bars for Q2–Q6 due to 30–48× speedup
 - Q1 is fast in all phases (index-assisted)
 
@@ -148,7 +150,7 @@ Speedup ratio relative to Phase 1 baseline, separately for Phase 2 (parallelism 
 - Phase 3b delivers 29–48× speedup on the same queries purely from memory layout improvement
 
 ### `load_time.png`
-Bar chart of average CSV load time per phase with ±1 stddev error bars. Shows:
+Bar chart of average CSV load time per phase. I-bars = ±1 stddev (10 runs). Shows:
 - Parallel load (Phase 2) is counterintuitively **slower** than serial (Phase 1)
 - SoA direct load (Phase 3b) is slightly faster than serial AoS load (Phase 1)
 

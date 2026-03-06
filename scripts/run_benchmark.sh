@@ -160,7 +160,7 @@ if command -v python3 &>/dev/null && \
         --phase2 "$BENCHMARKS/bench_phase2_local.csv" \
         --phase3 "$BENCHMARKS/bench_phase3b_local.csv" \
         --output "$PLOTS/" \
-        --label "94.6M records | 2020+2021+2022 | Phase 3b = SoA direct from CSV"
+        --label "94.6M records | 2020+2021+2022"
     echo "Plots written to: $PLOTS/{query_times,speedup,load_time}.png"
 else
     echo "WARNING: python3 or pandas/matplotlib/numpy not found — skipping plots."

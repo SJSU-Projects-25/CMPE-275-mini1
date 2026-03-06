@@ -1,7 +1,7 @@
 # CMPE-275-mini1 — Memory Overload
 
-**Course**: CMPE 275 — Distributed Application Development
-**Focus**: Memory utilization and concurrent processing
+**Course**: CMPE 275 — Distributed Application Development <br>
+**Focus**: Memory utilization and concurrent processing <br>
 **Dataset**: NYC TLC Yellow Taxi Trip Data (2020–2023)
 
 ---

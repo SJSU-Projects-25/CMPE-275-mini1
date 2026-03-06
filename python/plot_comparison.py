@@ -30,14 +30,15 @@ import matplotlib
 matplotlib.use("Agg")          # headless — no display required
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import matplotlib.lines as mlines
 import numpy as np
 
 
 # ── colour palette ────────────────────────────────────────────────────────────
-C1  = "#4C72B0"   # Phase 1 serial  (blue)
-C2  = "#DD8452"   # Phase 2 parallel (orange)
-C3  = "#55A868"   # Phase 3 SoA      (green)
-ERR = "#333333"   # error bar colour
+C1  = "#FDACAC"   # Phase 1 serial   (light coral)
+C2  = "#7C96AB"   # Phase 2 parallel (slate blue)
+C3  = "#6F826A"   # Phase 3 SoA      (sage green)
+ERR = "#735557"   # error bars       (dark mauve)
 
 
 def load_csv(path: str) -> pd.DataFrame:
@@ -59,8 +60,9 @@ def plot_query_times(phases: list, label: str, out_dir: str) -> None:
     phases: list of (name, colour, DataFrame) tuples.
     Produces a grouped bar chart with one cluster per query.
     """
-    # Keep only query rows, use the first phase's query list as canonical order
-    filtered = [(name, col, df[df["query"] != "LOAD"].copy())
+    # Keep only query rows (exclude LOAD and TOTAL_PHASE)
+    _qt_exclude = {"LOAD", "TOTAL_PHASE"}
+    filtered = [(name, col, df[~df["query"].isin(_qt_exclude)].copy())
                 for name, col, df in phases]
 
     queries = filtered[0][2]["query"].tolist()
@@ -81,7 +83,11 @@ def plot_query_times(phases: list, label: str, out_dir: str) -> None:
     ax.set_title(f"Query performance — all phases\n{label}")
     ax.set_xticks(x)
     ax.set_xticklabels(queries)
-    ax.legend()
+    err_handle = mlines.Line2D([], [], color=ERR, linewidth=1.5,
+                               marker="|", markersize=8,
+                               label="±1 stddev (10 runs)")
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles=handles + [err_handle], loc="upper left", fontsize=8)
     ax.yaxis.set_minor_locator(ticker.AutoMinorLocator())
     ax.grid(axis="y", linestyle="--", alpha=0.5)
 
@@ -103,7 +109,7 @@ def plot_speedup(phases: list, label: str, out_dir: str) -> None:
         return
 
     ncols = len(comparisons)
-    fig, axes = plt.subplots(1, ncols, figsize=(7 * ncols, 4),
+    fig, axes = plt.subplots(1, ncols, figsize=(7 * ncols, 6),
                              sharey=False, squeeze=False)
 
     _exclude = {"LOAD", "TOTAL_PHASE"}
@@ -123,14 +129,16 @@ def plot_speedup(phases: list, label: str, out_dir: str) -> None:
 
         for bar, val in zip(bars, speedup):
             ax.text(bar.get_x() + bar.get_width() / 2,
-                    bar.get_height() + 0.02,
+                    bar.get_height() + 0.05,
                     f"{val:.2f}×",
                     ha="center", va="bottom", fontsize=9)
+
+        ax.margins(y=0.15)
 
         ax.set_xlabel("Query")
         ax.set_ylabel(f"Speedup ({baseline_name} / {cmp_name})")
         ax.set_title(f"Speedup: {cmp_name} vs {baseline_name}\n{label}")
-        ax.legend()
+        ax.legend(loc="upper left", fontsize=8)
         ax.grid(axis="y", linestyle="--", alpha=0.5)
 
     fig.tight_layout()
@@ -157,7 +165,7 @@ def plot_load_time(phases: list, label: str, out_dir: str) -> None:
         print("  (no LOAD rows found — skipping load_time.png)")
         return
 
-    fig, ax = plt.subplots(figsize=(max(6, 2 * len(rows)), 4))
+    fig, ax = plt.subplots(figsize=(max(6, 2 * len(rows)), 5.5))
     labels  = [r["label"]  for r in rows]
     avgs    = [r["avg_ms"] for r in rows]
     stds    = [r["std_ms"] for r in rows]
@@ -166,9 +174,9 @@ def plot_load_time(phases: list, label: str, out_dir: str) -> None:
     bars = ax.bar(labels, avgs, yerr=stds, color=colours, capsize=6,
                   error_kw={"ecolor": ERR}, width=0.4)
 
-    for bar, val in zip(bars, avgs):
+    for bar, val, std in zip(bars, avgs, stds):
         ax.text(bar.get_x() + bar.get_width() / 2,
-                bar.get_height() + max(stds) * 0.05 if stds else 0,
+                val + std + max(avgs) * 0.01,
                 f"{val:.1f} ms",
                 ha="center", va="bottom", fontsize=10)
 
@@ -176,13 +184,16 @@ def plot_load_time(phases: list, label: str, out_dir: str) -> None:
     if len(avgs) > 1 and avgs[0] > 0:
         for i in range(1, len(avgs)):
             sp = avgs[0] / avgs[i] if avgs[i] > 0 else float("nan")
-            ax.annotate(f"({sp:.2f}× vs Phase 1)",
-                        xy=(i, avgs[i]),
-                        xytext=(0, -22), textcoords="offset points",
-                        ha="center", fontsize=8, color="#555555")
+            ax.text(i, avgs[i] * 0.3,
+                    f"({sp:.2f}× vs Phase 1)",
+                    ha="center", fontsize=8, color="black")
 
     ax.set_ylabel("Average load time (ms)")
     ax.set_title(f"CSV load time — all phases\n{label}")
+    err_handle = mlines.Line2D([], [], color=ERR, linewidth=1.5,
+                               marker="|", markersize=8,
+                               label="±1 stddev (10 runs)")
+    ax.legend(handles=[err_handle], loc="upper left", fontsize=8)
     ax.grid(axis="y", linestyle="--", alpha=0.5)
 
     save(fig, os.path.join(out_dir, "load_time.png"))
