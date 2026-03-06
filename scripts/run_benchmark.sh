@@ -34,17 +34,20 @@ DATA_DIR="${1:-$HOME/Downloads/taxi_data}"
 RUNS="${2:-10}"
 
 BIN="$PROJECT_ROOT/build/bin/taxi_bench_full"
-LOG="$PROJECT_ROOT/results/bench_local_run.log"
-RESULTS="$PROJECT_ROOT/results"
+BENCHMARKS="$PROJECT_ROOT/results/benchmarks"
+PLOTS="$PROJECT_ROOT/results/plots"
+LOG="$BENCHMARKS/bench_local_run.log"
 
 # ---- Preflight checks -------------------------------------------------------
 
 echo "================================================================="
 echo "CMPE 275 Mini1 — Full 3-Phase Benchmark Runner"
 echo "================================================================="
-echo "Data dir : $DATA_DIR"
-echo "Runs     : $RUNS"
-echo "Log      : $LOG"
+echo "Data dir   : $DATA_DIR"
+echo "Runs       : $RUNS"
+echo "Benchmarks : $BENCHMARKS"
+echo "Plots      : $PLOTS"
+echo "Log        : $LOG"
 echo ""
 
 if [ ! -f "$BIN" ]; then
@@ -63,7 +66,7 @@ for csv in "${REQUIRED_CSVS[@]}"; do
 done
 echo "All data files found."
 
-mkdir -p "$RESULTS"
+mkdir -p "$BENCHMARKS" "$PLOTS"
 
 # ---- Prevent sleep ----------------------------------------------------------
 
@@ -77,10 +80,10 @@ fi
 # ---- Clear previous results -------------------------------------------------
 
 echo "" > "$LOG"
-rm -f "$RESULTS/bench_phase1_local.csv" \
-      "$RESULTS/bench_phase2_local.csv" \
-      "$RESULTS/bench_phase3a_local.csv" \
-      "$RESULTS/bench_phase3b_local.csv"
+rm -f "$BENCHMARKS/bench_phase1_local.csv" \
+      "$BENCHMARKS/bench_phase2_local.csv" \
+      "$BENCHMARKS/bench_phase3a_local.csv" \
+      "$BENCHMARKS/bench_phase3b_local.csv"
 
 # ---- Run phases -------------------------------------------------------------
 
@@ -97,7 +100,7 @@ rm -f "$RESULTS/bench_phase1_local.csv" \
   "$BIN" \
     "$DATA_DIR/2020.csv" "$DATA_DIR/2021.csv" "$DATA_DIR/2022.csv" \
     --serial --runs "$RUNS" \
-    --output "$RESULTS/bench_phase1_local.csv"
+    --output "$BENCHMARKS/bench_phase1_local.csv"
   echo "--- Phase 1 done: $(date) ---"
   echo ""
 
@@ -108,7 +111,7 @@ rm -f "$RESULTS/bench_phase1_local.csv" \
   "$BIN" \
     "$DATA_DIR/2020.csv" "$DATA_DIR/2021.csv" "$DATA_DIR/2022.csv" \
     --threads 8 --runs "$RUNS" \
-    --output "$RESULTS/bench_phase2_local.csv"
+    --output "$BENCHMARKS/bench_phase2_local.csv"
   echo "--- Phase 2 done: $(date) ---"
   echo ""
 
@@ -120,7 +123,7 @@ rm -f "$RESULTS/bench_phase1_local.csv" \
   "$BIN" \
     "$DATA_DIR/2023.csv" \
     --soa --serial --runs "$RUNS" \
-    --output "$RESULTS/bench_phase3a_local.csv"
+    --output "$BENCHMARKS/bench_phase3a_local.csv"
   echo "--- Phase 3a done: $(date) ---"
   echo ""
 
@@ -132,17 +135,17 @@ rm -f "$RESULTS/bench_phase1_local.csv" \
   "$BIN" \
     "$DATA_DIR/2020.csv" "$DATA_DIR/2021.csv" "$DATA_DIR/2022.csv" \
     --soa-direct --serial --runs "$RUNS" \
-    --output "$RESULTS/bench_phase3b_local.csv"
+    --output "$BENCHMARKS/bench_phase3b_local.csv"
   echo "--- Phase 3b done: $(date) ---"
   echo ""
 
   echo "=== ALL PHASES COMPLETE: $(date) ==="
   echo ""
   echo "Results written to:"
-  echo "  $RESULTS/bench_phase1_local.csv"
-  echo "  $RESULTS/bench_phase2_local.csv"
-  echo "  $RESULTS/bench_phase3a_local.csv"
-  echo "  $RESULTS/bench_phase3b_local.csv"
+  echo "  $BENCHMARKS/bench_phase1_local.csv"
+  echo "  $BENCHMARKS/bench_phase2_local.csv"
+  echo "  $BENCHMARKS/bench_phase3a_local.csv"
+  echo "  $BENCHMARKS/bench_phase3b_local.csv"
 
 } 2>&1 | tee -a "$LOG"
 
@@ -153,12 +156,12 @@ echo "--- Generating comparison plots ---"
 if command -v python3 &>/dev/null && \
    python3 -c "import pandas, matplotlib, numpy" &>/dev/null 2>&1; then
     python3 "$PROJECT_ROOT/python/plot_comparison.py" \
-        --phase1 "$RESULTS/bench_phase1_local.csv" \
-        --phase2 "$RESULTS/bench_phase2_local.csv" \
-        --phase3 "$RESULTS/bench_phase3b_local.csv" \
-        --output "$RESULTS/" \
+        --phase1 "$BENCHMARKS/bench_phase1_local.csv" \
+        --phase2 "$BENCHMARKS/bench_phase2_local.csv" \
+        --phase3 "$BENCHMARKS/bench_phase3b_local.csv" \
+        --output "$PLOTS/" \
         --label "94.6M records | 2020+2021+2022 | Phase 3b = SoA direct from CSV"
-    echo "Plots written to: $RESULTS/{query_times,speedup,load_time}.png"
+    echo "Plots written to: $PLOTS/{query_times,speedup,load_time}.png"
 else
     echo "WARNING: python3 or pandas/matplotlib/numpy not found — skipping plots."
     echo "         Install: pip3 install pandas matplotlib numpy"

@@ -49,12 +49,17 @@ This project benchmarks three phases of memory-layout strategies for scan-heavy 
 │   └── validate_build.sh           # Quick build sanity check
 ├── python/
 │   └── plot_comparison.py          # Generates comparison graphs from CSVs
-└── results/                        # Benchmark output CSVs and log
-    ├── bench_phase1_local.csv
-    ├── bench_phase2_local.csv
-    ├── bench_phase3a_local.csv
-    ├── bench_phase3b_local.csv
-    └── bench_local_run.log
+└── results/
+    ├── benchmarks/                 # Benchmark output CSVs and log
+    │   ├── bench_phase1_local.csv
+    │   ├── bench_phase2_local.csv
+    │   ├── bench_phase3a_local.csv
+    │   ├── bench_phase3b_local.csv
+    │   └── bench_local_run.log
+    └── plots/                      # Generated comparison charts
+        ├── query_times.png
+        ├── speedup.png
+        └── load_time.png
 ```
 
 ---
@@ -126,19 +131,19 @@ DATA=~/Downloads/taxi_data
 
 # Phase 1 — AoS serial baseline
 "$BIN" "$DATA/2020.csv" "$DATA/2021.csv" "$DATA/2022.csv" \
-  --serial --runs 10 --output results/bench_phase1_local.csv
+  --serial --runs 10 --output results/benchmarks/bench_phase1_local.csv
 
 # Phase 2 — AoS parallel (8 threads)
 "$BIN" "$DATA/2020.csv" "$DATA/2021.csv" "$DATA/2022.csv" \
-  --threads 8 --runs 10 --output results/bench_phase2_local.csv
+  --threads 8 --runs 10 --output results/benchmarks/bench_phase2_local.csv
 
 # Phase 3a — SoA converted from AoS (2023.csv only — memory constraint)
 "$BIN" "$DATA/2023.csv" \
-  --soa --serial --runs 10 --output results/bench_phase3a_local.csv
+  --soa --serial --runs 10 --output results/benchmarks/bench_phase3a_local.csv
 
 # Phase 3b — SoA loaded directly from CSV (all 3 CSVs, single-pass)
 "$BIN" "$DATA/2020.csv" "$DATA/2021.csv" "$DATA/2022.csv" \
-  --soa-direct --serial --runs 10 --output results/bench_phase3b_local.csv
+  --soa-direct --serial --runs 10 --output results/benchmarks/bench_phase3b_local.csv
 ```
 
 ---
@@ -216,18 +221,20 @@ Q6 is a full-dataset reduction — no early exit, maximally stresses memory band
 
 ## Results Output
 
-Each phase writes a CSV to `results/` and the run script auto-generates plots on completion:
+Each phase writes a CSV to `results/benchmarks/` and the run script auto-generates plots to `results/plots/` on completion:
 
 ```
 results/
-    bench_phase1_local.csv      # Phase 1 timing data
-    bench_phase2_local.csv      # Phase 2 timing data
-    bench_phase3a_local.csv     # Phase 3a timing data
-    bench_phase3b_local.csv     # Phase 3b timing data
-    bench_local_run.log         # Full timestamped run log
-    query_times.png             # Grouped bar chart: avg ms per query per phase
-    speedup.png                 # Speedup ratios vs Phase 1 baseline
-    load_time.png               # CSV load time comparison across phases
+├── benchmarks/
+│   ├── bench_phase1_local.csv      # Phase 1 timing data
+│   ├── bench_phase2_local.csv      # Phase 2 timing data
+│   ├── bench_phase3a_local.csv     # Phase 3a timing data
+│   ├── bench_phase3b_local.csv     # Phase 3b timing data
+│   └── bench_local_run.log         # Full timestamped run log
+└── plots/
+    ├── query_times.png             # Grouped bar chart: avg ms per query per phase
+    ├── speedup.png                 # Speedup ratios vs Phase 1 baseline
+    └── load_time.png               # CSV load time comparison across phases
 ```
 
 Plots are generated automatically at the end of `scripts/run_benchmark.sh`.
@@ -235,10 +242,10 @@ To regenerate them manually from existing CSVs:
 
 ```bash
 python3 python/plot_comparison.py \
-    --phase1 results/bench_phase1_local.csv \
-    --phase2 results/bench_phase2_local.csv \
-    --phase3 results/bench_phase3b_local.csv \
-    --output results/ \
+    --phase1 results/benchmarks/bench_phase1_local.csv \
+    --phase2 results/benchmarks/bench_phase2_local.csv \
+    --phase3 results/benchmarks/bench_phase3b_local.csv \
+    --output results/plots/ \
     --label "94.6M records | 2020+2021+2022 | Phase 3b = SoA direct from CSV"
 ```
 

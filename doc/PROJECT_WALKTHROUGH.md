@@ -82,16 +82,16 @@ BIN=./build/bin/taxi_bench_full
 DATA=~/Downloads/taxi_data
 
 # Phase 1 — AoS serial baseline (3 CSVs)
-"$BIN" "$DATA/2020.csv" "$DATA/2021.csv" "$DATA/2022.csv" --serial --runs 10 --output results/bench_phase1_local.csv
+"$BIN" "$DATA/2020.csv" "$DATA/2021.csv" "$DATA/2022.csv" --serial --runs 10 --output results/benchmarks/bench_phase1_local.csv
 
 # Phase 2 — AoS parallel 8 threads (3 CSVs)
-"$BIN" "$DATA/2020.csv" "$DATA/2021.csv" "$DATA/2022.csv" --threads 8 --runs 10 --output results/bench_phase2_local.csv
+"$BIN" "$DATA/2020.csv" "$DATA/2021.csv" "$DATA/2022.csv" --threads 8 --runs 10 --output results/benchmarks/bench_phase2_local.csv
 
 # Phase 3a — SoA from AoS (2023.csv only — memory constraint)
-"$BIN" "$DATA/2023.csv" --soa --serial --runs 10 --output results/bench_phase3a_local.csv
+"$BIN" "$DATA/2023.csv" --soa --serial --runs 10 --output results/benchmarks/bench_phase3a_local.csv
 
 # Phase 3b — SoA direct from CSV (3 CSVs)
-"$BIN" "$DATA/2020.csv" "$DATA/2021.csv" "$DATA/2022.csv" --soa-direct --serial --runs 10 --output results/bench_phase3b_local.csv
+"$BIN" "$DATA/2020.csv" "$DATA/2021.csv" "$DATA/2022.csv" --soa-direct --serial --runs 10 --output results/benchmarks/bench_phase3b_local.csv
 ```
 
 ---
@@ -341,7 +341,7 @@ Writes all rows to a CSV file with header:
 phase,query,dataset_size,threads,avg_ms,stddev_ms,min_ms,max_ms,runs,matches,extra_val
 ```
 Creates parent directories if needed. Throws `std::runtime_error` if the file cannot be opened.
-This produces the `results/bench_phase*.csv` files in the repo.
+This produces the `results/benchmarks/bench_phase*.csv` files in the repo.
 
 **`void print_summary() const`**
 Prints a human-readable, column-aligned table to stdout for quick review during benchmark runs.
@@ -359,7 +359,7 @@ Prints a human-readable, column-aligned table to stdout for quick review during 
 3. Times three serial searches (fare, distance, passenger count) across 10 runs each.
 4. Prints success rates and records-per-second.
 
-This produces the **Phase 1 baseline** numbers documented in `results/bench_phase1_real.csv`
+This produces the **Phase 1 baseline** numbers documented in `results/benchmarks/bench_phase1_local.csv`
 (e.g., ~106 seconds to load 39M records, ~47s for a fare scan).
 
 ---
@@ -610,7 +610,7 @@ After all runs, calls `recorder.write_csv(output_path)` and `recorder.print_summ
 **Author:** Shamathmika
 **Requirement connection:** Report requirement — "testing results (tabular and graph formats)."
 
-Reads the `results/bench_phase*.csv` files and generates 3 PNG charts.
+Reads the `results/benchmarks/bench_phase*.csv` files and generates 3 PNG charts saved to `results/plots/`.
 
 **`load_and_filter(path, phase_label)`**
 Reads a benchmark CSV with `pandas.read_csv()` and tags all rows with the given phase label.
@@ -668,8 +668,8 @@ Auto-discovers CSVs by naming convention (`bench_phase1_real.csv` for 1T,
 
 ## 9. Benchmark Results Summary
 
-All raw data is in `results/`. Full analysis is in `doc/RESULT_SUMMARY.md`.
-Plots: `results/query_times.png`, `results/speedup.png`, `results/load_time.png`.
+All raw data is in `results/benchmarks/`. Full analysis is in `doc/RESULT_SUMMARY.md`.
+Plots: `results/plots/query_times.png`, `results/plots/speedup.png`, `results/plots/load_time.png`.
 
 **Dataset**: 94,589,581 records from 2020+2021+2022 NYC Yellow Taxi CSVs (~12 GB on disk, ~11.9 GB in RAM).
 Phase 3a uses 2023.csv only (37,917,834 records) due to 2×N peak memory constraint.

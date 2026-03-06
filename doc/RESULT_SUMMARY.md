@@ -5,8 +5,8 @@
 **Compiler**: GCC 13+ with OpenMP, `-O2`
 **Dataset**: NYC TLC Yellow Taxi Trip Records
 
-Raw CSVs: `results/bench_phase*.csv`
-Plots: `results/query_times.png`, `results/speedup.png`, `results/load_time.png`
+Raw CSVs: `results/benchmarks/bench_phase*.csv`
+Plots: `results/plots/query_times.png`, `results/plots/speedup.png`, `results/plots/load_time.png`
 
 ---
 
@@ -133,7 +133,7 @@ minimum times are the most representative of SoA's achievable throughput.
 
 ## Plots
 
-All three PNG files are in `results/`:
+All three PNG files are in `results/plots/`:
 
 ### `query_times.png`
 Grouped bar chart showing avg query time (ms) for Phase 1, Phase 2, and Phase 3b side by side
