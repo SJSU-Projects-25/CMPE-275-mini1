@@ -216,20 +216,30 @@ Q6 is a full-dataset reduction — no early exit, maximally stresses memory band
 
 ## Results Output
 
-Each phase writes a CSV to `results/`:
+Each phase writes a CSV to `results/` and the run script auto-generates plots on completion:
 
 ```
-phase,metric,value,unit
-Phase1_serial,load_time_mean,97.42,s
-Phase1_serial,load_time_stddev,0.31,s
-Phase1_serial,Q1_mean,0.412,s
-...
+results/
+    bench_phase1_local.csv      # Phase 1 timing data
+    bench_phase2_local.csv      # Phase 2 timing data
+    bench_phase3a_local.csv     # Phase 3a timing data
+    bench_phase3b_local.csv     # Phase 3b timing data
+    bench_local_run.log         # Full timestamped run log
+    query_times.png             # Grouped bar chart: avg ms per query per phase
+    speedup.png                 # Speedup ratios vs Phase 1 baseline
+    load_time.png               # CSV load time comparison across phases
 ```
 
-Generate plots after all phases complete:
+Plots are generated automatically at the end of `scripts/run_benchmark.sh`.
+To regenerate them manually from existing CSVs:
 
 ```bash
-python3 python/plot_comparison.py
+python3 python/plot_comparison.py \
+    --phase1 results/bench_phase1_local.csv \
+    --phase2 results/bench_phase2_local.csv \
+    --phase3 results/bench_phase3b_local.csv \
+    --output results/ \
+    --label "94.6M records | 2020+2021+2022 | Phase 3b = SoA direct from CSV"
 ```
 
 ---
