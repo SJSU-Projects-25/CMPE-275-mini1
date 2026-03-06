@@ -11,8 +11,8 @@ DatasetManager::DatasetManager() : records_(), load_stats_() {
 }
 
 void DatasetManager::load_from_csv(const std::string& csv_path) {
-    clear();
-    
+    // NOTE: does NOT call clear() — each call APPENDS to existing records.
+    // Callers that want a fresh load should call clear() explicitly beforehand.
     try {
         CsvReader reader(csv_path);
         if (!reader.is_open()) {
@@ -24,18 +24,12 @@ void DatasetManager::load_from_csv(const std::string& csv_path) {
             records_.push_back(record);
         }
 
-        // Update statistics
+        // Accumulate statistics across multiple load_from_csv calls
         auto csv_stats = reader.get_stats();
-        load_stats_.total_rows_read = csv_stats.rows_read;
-        load_stats_.total_rows_parsed = csv_stats.rows_parsed_ok;
-        load_stats_.total_rows_discarded = csv_stats.rows_discarded;
-        
-        // Warn if no records were loaded
-        if (records_.empty() && csv_stats.rows_read > 0) {
-            // This is a warning, not an error - file might be empty or all rows invalid
-            // We'll let the caller decide what to do
-        }
-        
+        load_stats_.total_rows_read      += csv_stats.rows_read;
+        load_stats_.total_rows_parsed    += csv_stats.rows_parsed_ok;
+        load_stats_.total_rows_discarded += csv_stats.rows_discarded;
+
     } catch (const std::runtime_error&) {
         // Re-throw runtime errors (file not found, etc.)
         throw;

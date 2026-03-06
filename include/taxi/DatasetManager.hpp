@@ -38,6 +38,13 @@ public:
     const std::vector<TripRecord>& records() const { return records_; }
 
     /**
+     * @brief Move all loaded records out of this manager (leaves manager empty).
+     * Use instead of records() when you don't need the manager afterwards,
+     * to avoid a 17 GB copy when working with large datasets.
+     */
+    std::vector<TripRecord> take_records() { return std::move(records_); }
+
+    /**
      * @brief Get the number of loaded records.
      */
     std::size_t size() const { return records_.size(); }
@@ -89,15 +96,17 @@ public:
      */
     QueryEngine& query_engine();
 
+    /**
+     * @brief Pre-reserve capacity for the records vector.
+     * Call before a multi-file load to avoid reallocation OOM spikes.
+     * E.g. reserve_if_needed(140000000) for the full 4-year TLC dataset.
+     */
+    void reserve_if_needed(std::size_t estimated_size);
+
 private:
     std::vector<TripRecord> records_;
     LoadStats load_stats_;
     std::unique_ptr<QueryEngine> query_engine_;
-
-    /**
-     * @brief Reserve memory if we can estimate size (for performance).
-     */
-    void reserve_if_needed(std::size_t estimated_size);
 };
 
 } // namespace taxi

@@ -48,7 +48,30 @@ public:
 
     Stats get_stats() const { return stats_; }
 
+    /**
+     * @brief Parse a byte-range slice of a CSV file into records.
+     *
+     * Used by ParallelLoader. Each thread calls this with non-overlapping
+     * [byte_start, byte_end] ranges. When byte_start > 0 the method
+     * automatically discards the (possibly partial) first line so that
+     * record ownership is unambiguous across chunks.
+     *
+     * @param path       Path to the CSV file.
+     * @param byte_start First byte of this chunk (inclusive).
+     * @param byte_end   Last byte of this chunk (inclusive).
+     * @param out_stats  Populated with per-chunk parse statistics.
+     * @return           All successfully parsed records in this chunk.
+     */
+    static std::vector<TripRecord> load_chunk(
+        const std::string& path,
+        std::int64_t byte_start,
+        std::int64_t byte_end,
+        Stats& out_stats);
+
 private:
+    // Default constructor used internally by load_chunk.
+    CsvReader() : stats_(), header_read_(false) {}
+
     std::ifstream file_;
     Stats stats_;
     bool header_read_;

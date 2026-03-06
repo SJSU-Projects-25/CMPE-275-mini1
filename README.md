@@ -1,348 +1,258 @@
-# CMPE-275-mini1
+# CMPE-275-mini1 — Memory Overload
 
-This is mini project 1 for Distributed Application Development - Memory Overload
+**Course**: CMPE 275 — Distributed Application Development
+**Focus**: Memory utilization and concurrent processing
+**Dataset**: NYC TLC Yellow Taxi Trip Data (2020–2023)
 
-Focus: Memory utilization and concurrent processing
+---
+
+## Overview
+
+This project benchmarks three phases of memory-layout strategies for scan-heavy workloads on ~92.9 million taxi trip records (~12 GB CSV):
+
+| Phase    | Strategy                     | Dataset                 | Peak RAM |
+| -------- | ---------------------------- | ----------------------- | -------- |
+| Phase 1  | AoS serial (baseline)        | 2020+2021+2022 (~92.9M) | ~11.9 GB |
+| Phase 2  | AoS parallel (8 threads)     | 2020+2021+2022 (~92.9M) | ~11.9 GB |
+| Phase 3a | SoA converted from AoS       | 2023.csv only (~37.9M)  | ~9.7 GB  |
+| Phase 3b | SoA loaded directly from CSV | 2020+2021+2022 (~92.9M) | ~11.9 GB |
+
+**Phase 3a is limited to 2023.csv only** because converting AoS→SoA requires both in memory simultaneously (2×N peak = ~23.8 GB for 3 CSVs — exceeds 16 GB RAM). Phase 3b fixes this with a direct CSV→SoA single-pass loader.
+
+---
 
 ## Project Structure
 
 ```
 .
-├── CMakeLists.txt          # CMake build configuration
+├── CMakeLists.txt
 ├── include/
-│   └── taxi/              # Library headers
-│       ├── TripRecord.hpp
-│       ├── CsvReader.hpp
-│       └── DatasetManager.hpp
-├── src/                   # Library implementation
-│   ├── TripRecord.cpp
+│   └── taxi/
+│       ├── TripRecord.hpp          # Core data struct (primitive fields only)
+│       ├── CsvReader.hpp           # Streaming CSV parser (RFC 4180)
+│       ├── DatasetManager.hpp      # AoS loader + QueryEngine façade
+│       ├── TripDataSoA.hpp         # SoA layout (17 parallel typed arrays)
+│       ├── ParallelLoader.hpp      # Multi-threaded CSV loader for Phase 2
+│       ├── BenchmarkRunner.hpp     # Timing harness (N runs, mean/stddev)
+│       ├── MetricsRecorder.hpp     # CSV results writer
+│       └── SoAQueryEngine.hpp      # Query engine for SoA layout
+├── src/
 │   ├── CsvReader.cpp
 │   ├── DatasetManager.cpp
-│   └── benchmark_main.cpp # Benchmark harness executable
+│   ├── MetricsRecorder.cpp
+│   ├── ParallelLoader.cpp
+│   ├── SoAQueryEngine.cpp          # Also implements TripDataSoA::from_aos/from_csv
+│   └── benchmark_main.cpp          # Main benchmark executable (all 3 phases)
 ├── scripts/
-│   └── download_tlc_data.sh  # Data download automation
-└── data/                  # CSV data files (gitignored)
+│   ├── run_benchmark.sh            # Runs all 3 phases (3a+3b), logs to results/
+│   ├── download_tlc_data.sh        # Downloads TLC data from NYC OpenData
+│   └── validate_build.sh           # Quick build sanity check
+├── python/
+│   └── plot_comparison.py          # Generates comparison graphs from CSVs
+└── results/                        # Benchmark output CSVs and log
+    ├── bench_phase1_local.csv
+    ├── bench_phase2_local.csv
+    ├── bench_phase3a_local.csv
+    ├── bench_phase3b_local.csv
+    └── bench_local_run.log
 ```
 
-## Building the Project
+---
 
-### Prerequisites
+## Prerequisites
 
-- **CMake** (version 3.20 or newer)
-- **C++ Compiler**:
-  - GCC/G++ v13+ OR
-  - Clang v16+ (not Apple's Xcode)
-- **C++ Standard**: C++20
+- **CMake** 3.20 or newer
+- **C++ Compiler**: GCC 13+ or Clang 16+ (not Apple's Xcode clang)
+- **OpenMP** (included with GCC; on macOS: `brew install libomp`)
+- **RAM**: 16 GB minimum. Close other large applications before running.
+- **Disk**: ~15 GB for data files (gitignored)
 
-### Build Instructions
+---
+
+## Building
 
 ```bash
-# Create build directory
-mkdir -p build
-cd build
+# Configure
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-# Configure with CMake
-cmake ..
+# Build the benchmark binary
+cmake --build build --target taxi_bench_full
 
-# Build the project
-cmake --build .
-
-# Or use make (on Unix systems)
-make
+# Verify
+ls build/bin/taxi_bench_full
 ```
 
-The build will create:
-- **Library**: `build/lib/libtaxi_core.a` (or `.so` on Linux)
-- **Executable**: `build/bin/taxi_bench` (benchmark harness)
+---
 
-### Running the Benchmark
+## Data
 
-```bash
-# From the build directory
-./bin/taxi_bench <path_to_csv_file> [num_runs]
-
-# Example with test data (fast, ~20ms per iteration):
-./bin/taxi_bench ../data/test_sample.csv 10
-
-# Example with full dataset (slow, ~14s per iteration):
-./bin/taxi_bench ../data/2018_Yellow_Taxi_Trip_Data_20260216.csv 10
-```
-
-**Note**: For quick testing, use `data/test_sample.csv` (10K rows, ~1.2MB). For final benchmarks, use the full dataset.
-
-## Test Data
-
-A small test dataset (`data/test_sample.csv`) is included for quick testing and development:
-- **Size**: ~1.3 MB
-- **Records**: 10,000 rows
-- **Purpose**: Fast testing, can be committed to GitHub
-- **Usage**: `./build/bin/taxi_bench data/test_sample.csv 10` (~20ms per iteration)
-
-To create your own test sample from a larger dataset:
-```bash
-bash scripts/create_test_data.sh [input_file] [num_rows] [output_file]
-
-# Example: Extract 5000 rows
-bash scripts/create_test_data.sh data/large_file.csv 5000 data/my_test.csv
-```
-
-## Downloading Full Data
-
-The `scripts/download_tlc_data.sh` script automates downloading TLC Yellow Taxi Trip Data from NYC OpenData.
-
-**Before using**, edit the script and add your dataset URLs to the `DATASET_URLS` array:
-
-```bash
-# Edit the script
-vim scripts/download_tlc_data.sh
-
-# Add your URLs in this format:
-DATASET_URLS=(
-    "https://data.cityofnewyork.us/api/views/.../rows.csv?accessType=DOWNLOAD|filename.csv"
-    # ... more URLs
-)
-```
-
-Then run:
+Download the NYC TLC Yellow Taxi Trip Data for 2020–2023:
 
 ```bash
 bash scripts/download_tlc_data.sh
 ```
 
-The script will:
-- Download datasets to `data/` directory
-- Skip files that already exist
-- Show progress and summary
+Place the files as:
 
-**Note**: The assignment requires datasets totaling >12 GB and >2 million records. You may need multiple monthly/yearly datasets. Large data files are gitignored - only `test_sample.csv` is committed.
-
-## Testing
-
-### Test CSV Reader
-
-```bash
-# Build test utility
-cd build
-make test_csv_reader
-
-# Test parsing on a sample file
-./bin/test_csv_reader ../data/your_file.csv 10
+```
+~/Downloads/taxi_data/
+    2020.csv    (~3.1 GB)
+    2021.csv    (~3.8 GB)
+    2022.csv    (~5.1 GB)
+    2023.csv    (~4.7 GB)
 ```
 
-### Run Full Benchmark
+**Do not commit data files** — they are gitignored.
+
+---
+
+## Running All 3 Phases
 
 ```bash
-# Build benchmark harness
-cd build
-make taxi_bench
-
-# Run benchmark (10 iterations by default)
-./bin/taxi_bench ../data/2018_Yellow_Taxi_Trip_Data_20260216.csv 10
+bash scripts/run_benchmark.sh [DATA_DIR] [RUNS]
 ```
 
-## Phase 1 Status
+Defaults: `DATA_DIR=~/Downloads/taxi_data`, `RUNS=10`.
 
-✅ Build system configured  
-✅ Project structure created  
-✅ Data automation script ready  
-✅ CSV reader (streaming, RFC 4180 compliant)  
-✅ Schema mapping and type conversion  
-✅ Error handling and normalization  
-✅ DatasetManager with search APIs  
-✅ Benchmark harness with timing
+This runs all 3 phases (including both Phase 3a and 3b) sequentially, logs timestamped output to `results/bench_local_run.log`, and writes per-phase CSVs to `results/`. System sleep is prevented via `caffeinate` (macOS).
+
+**Estimated total runtime**: 4–8 hours (depends on hardware).
+
+### Running Individual Phases
+
+```bash
+BIN=./build/bin/taxi_bench_full
+DATA=~/Downloads/taxi_data
+
+# Phase 1 — AoS serial baseline
+"$BIN" "$DATA/2020.csv" "$DATA/2021.csv" "$DATA/2022.csv" \
+  --serial --runs 10 --output results/bench_phase1_local.csv
+
+# Phase 2 — AoS parallel (8 threads)
+"$BIN" "$DATA/2020.csv" "$DATA/2021.csv" "$DATA/2022.csv" \
+  --threads 8 --runs 10 --output results/bench_phase2_local.csv
+
+# Phase 3a — SoA converted from AoS (2023.csv only — memory constraint)
+"$BIN" "$DATA/2023.csv" \
+  --soa --serial --runs 10 --output results/bench_phase3a_local.csv
+
+# Phase 3b — SoA loaded directly from CSV (all 3 CSVs, single-pass)
+"$BIN" "$DATA/2020.csv" "$DATA/2021.csv" "$DATA/2022.csv" \
+  --soa-direct --serial --runs 10 --output results/bench_phase3b_local.csv
+```
+
+---
 
 ## Architecture
 
-### Phase 1 Design (Current)
+### Memory Layouts
 
-- **TripRecord**: Data structure with primitive types only (int, double, bool, int64_t)
-- **CsvReader**: Streaming CSV parser with RFC 4180 compliance
-  - Handles quoted fields, escaped quotes, empty fields
-  - Type conversion with error handling
-  - Timestamp parsing (YYYY-MM-DD HH:MM:SS → Unix epoch seconds)
-- **DatasetManager**: Main library interface
-  - Loads CSV files into memory (Array-of-Objects pattern)
-  - Provides search APIs: `search_by_fare()`, `search_by_distance()`, `search_by_passenger_count()`
-  - Tracks loading statistics
-- **Benchmark Harness**: Performance measurement tool
-  - Times CSV loading and search operations
-  - Runs multiple iterations and calculates averages
-  - Reports statistics and success rates
-
-### Error Handling Strategy
-
-- **Critical fields** (timestamps): Invalid values cause row to be discarded
-- **Non-critical fields**: Missing/invalid values normalized to defaults (0 or 0.0)
-- **Statistics**: Tracks rows read, parsed successfully, and discarded
-- **Validation**: Records must pass `TripRecord::is_valid()` check
-
-## Quick Start Guide
-
-### For New Team Members
-
-1. **Clone and build:**
-   ```bash
-   git clone <repo-url>
-   cd CMPE-275-mini1
-   bash scripts/validate_build.sh
-   ```
-
-2. **Test with sample data:**
-   ```bash
-   ./build/bin/taxi_bench data/test_sample.csv 3
-   ```
-
-3. **Review the code:**
-   - Start with `include/taxi/TripRecord.hpp` - data structure
-   - Then `include/taxi/CsvReader.hpp` - CSV parsing
-   - Then `include/taxi/DatasetManager.hpp` - main API
-   - Finally `src/benchmark_main.cpp` - benchmark harness
-
-4. **Read handover document:**
-   - See `HANDOVER.md` for detailed Phase 1 → Phase 2 transition guide
-   - Includes API documentation, design decisions, and implementation suggestions
-
-5. **Understand Phase 1 baseline:**
-   - Current performance: ~21ms load for 10K records, ~14s for 6.4M records
-   - Search operations: ~0.02ms for 10K records
-   - This is your baseline for Phase 2 (parallelization) and Phase 3 (vectorization)
-
-## API Documentation for Phase 2/3
-
-### DatasetManager API
-
-The `DatasetManager` class is the main interface for Phase 2 parallelization:
+#### Array-of-Structs (AoS) — Phases 1 & 2
 
 ```cpp
-// Load CSV file (serial - Phase 1)
-void load_from_csv(const std::string& csv_path);
-
-// Search APIs (currently serial - Phase 2 will parallelize these)
-std::vector<const TripRecord*> search_by_fare(double min_fare, double max_fare) const;
-std::vector<const TripRecord*> search_by_distance(double min_distance, double max_distance) const;
-std::vector<const TripRecord*> search_by_passenger_count(int min_passengers, int max_passengers) const;
-
-// Access loaded records
-const std::vector<TripRecord>& records() const;
-std::size_t size() const;
+struct TripRecord {          // 128 bytes per record
+    int vendor_id;
+    int64_t pickup_timestamp;
+    int64_t dropoff_timestamp;
+    int passenger_count;
+    double trip_distance;
+    // ... 12 more fields
+};
+std::vector<TripRecord> records;  // contiguous in memory
 ```
 
-### Key Design Decisions
+Cache behavior: scanning `trip_distance` loads 128-byte struct per record but uses only 8 bytes → 0.5 records per 64-byte cache line = 94% cache waste per scan.
 
-1. **Array-of-Objects Pattern (Phase 1):**
-   - `std::vector<TripRecord>` stores records as objects
-   - Phase 3 will convert to Object-of-Arrays for better cache performance
+#### Structure-of-Arrays (SoA) — Phases 3a & 3b
 
-2. **Search APIs return pointers:**
-   - Returns `std::vector<const TripRecord*>` to avoid copying
-   - Phase 2 can parallelize the search loops easily
+```cpp
+struct TripDataSoA {
+    std::vector<double> trip_distance;      // one vector per field
+    std::vector<double> fare_amount;
+    std::vector<int64_t> pickup_timestamp;
+    // ... 14 more parallel vectors
+};
+```
 
-3. **No threading in Phase 1:**
-   - All operations are serial as required
-   - Phase 2 will add OpenMP/threading to search operations
+Cache behavior: scanning `trip_distance` fills cache lines with 8 doubles = 8 useful values per line → 100% cache utilization for that field. Enables compiler SIMD auto-vectorization (SSE/AVX).
 
-## Handover Notes for Phase 2
+### SoA Loading Strategies
 
-### What's Complete (Phase 1)
-- ✅ Complete CSV parsing pipeline
-- ✅ Data loading into memory (Array-of-Objects)
-- ✅ Three search APIs (fare, distance, passenger_count)
-- ✅ Benchmark harness with timing
-- ✅ Error handling and statistics tracking
-- ✅ Test data for quick development
+**`from_aos()`** (Phase 3a): Converts existing `vector<TripRecord>` → SoA. Requires both layouts in memory simultaneously → 2×N peak. Limited to 2023.csv (~37.9M records, ~9.7 GB peak).
 
-### What Needs to Be Done (Phase 2)
+**`from_csv()`** (Phase 3b): Single-pass directly from CSV into SoA column vectors. Pre-reserves 95M rows per column. No intermediate AoS → peak memory = SoA only (~11.9 GB). Allows running on all 3 CSVs.
 
-**Person B's Responsibilities:**
-1. **Add parallelization to search operations:**
-   - Use OpenMP or std::thread to parallelize search loops
-   - Focus on `search_by_fare()`, `search_by_distance()`, `search_by_passenger_count()`
-   - Keep `load_from_csv()` serial for now (or parallelize if time permits)
+### Component Summary
 
-2. **Update CMakeLists.txt:**
-   - Add OpenMP flags if using OpenMP
-   - Ensure thread-safe compilation
+| Component         | Role                                                         |
+| ----------------- | ------------------------------------------------------------ |
+| `TripRecord`      | Data struct — 128 bytes, all primitive types                 |
+| `CsvReader`       | Streaming RFC 4180 CSV parser, handles 17–19-column variants |
+| `DatasetManager`  | AoS loader, multi-CSV accumulation, QueryEngine façade       |
+| `ParallelLoader`  | Splits CSV files across N threads for Phase 2 load           |
+| `TripDataSoA`     | SoA layout with `from_aos()` and `from_csv()` loaders        |
+| `SoAQueryEngine`  | Scan queries over SoA columns; OpenMP-ready                  |
+| `BenchmarkRunner` | Runs a callable N times, computes mean and stddev            |
+| `MetricsRecorder` | Writes timing results to CSV for analysis                    |
 
-3. **Benchmark and compare:**
-   - Run same benchmarks as Phase 1
-   - Compare performance improvements
-   - Document speedup ratios
+---
 
-### Suggested Approach for Phase 2
+## Queries Benchmarked (Q1–Q6)
 
-1. **Start with one search function:**
-   ```cpp
-   // Example: Parallelize search_by_fare using OpenMP
-   #pragma omp parallel for
-   for (size_t i = 0; i < records_.size(); ++i) {
-       if (records_[i].fare_amount >= min_fare && 
-           records_[i].fare_amount <= max_fare) {
-           #pragma omp critical
-           results.push_back(&records_[i]);
-       }
-   }
-   ```
+All queries are scan-based range operations over the full dataset:
 
-2. **Measure performance:**
-   - Use the existing benchmark harness
-   - Compare Phase 1 vs Phase 2 results
-   - Document findings
+| Query | Description                               | Fields scanned     |
+| ----- | ----------------------------------------- | ------------------ |
+| Q1    | Trips in a time window (Jan 2021)         | `pickup_timestamp` |
+| Q2    | Trips with distance 1–5 miles             | `trip_distance`    |
+| Q3    | Trips with fare $10–$50                   | `fare_amount`      |
+| Q4    | Trips from pickup location ID 100–200     | `pu_location_id`   |
+| Q5    | Combined: time + fare + passenger count   | 3 fields           |
+| Q6    | Aggregate: average fare over full dataset | `fare_amount`      |
 
-3. **Handle thread safety:**
-   - Results vector needs thread-safe insertion
-   - Consider pre-allocating or using thread-local storage
+Q6 is a full-dataset reduction — no early exit, maximally stresses memory bandwidth.
+
+---
+
+## Results Output
+
+Each phase writes a CSV to `results/`:
+
+```
+phase,metric,value,unit
+Phase1_serial,load_time_mean,97.42,s
+Phase1_serial,load_time_stddev,0.31,s
+Phase1_serial,Q1_mean,0.412,s
+...
+```
+
+Generate plots after all phases complete:
+
+```bash
+python3 python/plot_comparison.py
+```
+
+---
+
+## Memory Notes
+
+- Phase 1/2/3b peak ~11.9 GB (AoS only or SoA only for 92.9M records)
+- Phase 3a peak ~9.7 GB (AoS 4.8 GB + SoA 4.9 GB for 37.9M records)
+- Do **not** run multiple benchmark processes simultaneously — combined RAM will OOM-kill
+- On macOS, pre-reserving vectors allocates virtual memory backed by swap; keep reserve close to actual record count (95M for this dataset)
+
+---
 
 ## Troubleshooting
 
-### Build Issues
+**Binary not found:**
 
-**CMake not found:**
 ```bash
-# macOS
-brew install cmake
-
-# Linux
-sudo apt-get install cmake  # Ubuntu/Debian
-sudo yum install cmake       # CentOS/RHEL
+cmake --build build --target taxi_bench_full
 ```
 
-**Compiler version issues:**
-- Check version: `g++ --version` or `clang++ --version`
-- Update if needed (GCC 13+ or Clang 16+ required)
+**OOM / system thrashing:**
 
-### Runtime Issues
-
-**"No records loaded":**
-- Check CSV file format matches expected schema
-- Verify file path is correct
-- Check file permissions
-
-**Benchmark takes too long:**
-- Use `data/test_sample.csv` for quick testing (10K rows)
-- Full dataset (6.4M rows) takes ~14s per iteration
-
-**Parse success rate low:**
-- Check CSV format (should have 17 columns)
-- Verify timestamp format matches: "YYYY MMM DD HH:MM:SS AM/PM"
-- Some rows may be invalid - this is normal (99.7% success rate is good)
-
-## Team Responsibilities
-
-- **Person A (Ashish)**: Data ingestion + parsing pipeline (core) ✅ COMPLETE
-  - ✅ CSV reader (streaming, buffered)
-  - ✅ Schema mapping (per-column parsing, type conversion)
-  - ✅ Error handling strategy (bad rows, missing values)
-  - ✅ Field normalization (dates, ints, floats)
-  - ✅ TaxiTrip loader that outputs Phase 1 structure
-  - ✅ Build system (CMakeLists.txt)
-  - ✅ Benchmarking harness
-
-- **Person B**: Phase 2 - Parallelization 🚧 TODO
-  - Add OpenMP/threading to search operations
-  - Benchmark and compare with Phase 1 baseline
-  - Document performance improvements
-
-- **Person C**: Phase 3 - Vectorization 🚧 TODO
-  - Convert Array-of-Objects to Object-of-Arrays
-  - Optimize memory layout for cache performance
-  - Benchmark and document improvements
+- Close all other large applications
+- Restart to clear swap before running
+- Check `RUNS` arg — default 10 is correct

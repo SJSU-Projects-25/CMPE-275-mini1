@@ -1,0 +1,257 @@
+=== Full 4-Phase Benchmark: Fri Mar  6 00:45:45 PST 2026 ===
+--- Phase 1 (AoS serial, 3 CSVs) start: Fri Mar  6 00:45:45 PST 2026 ---
+================================================================
+CMPE 275 Mini1 — Full Benchmark CLI  (Phase1_serial)
+================================================================
+CSV files     : /Users/shamathmika/Downloads/taxi_data/2020.csv
+               /Users/shamathmika/Downloads/taxi_data/2021.csv
+               /Users/shamathmika/Downloads/taxi_data/2022.csv
+Runs/query    : 10
+Queries       : all
+Load threads  : 1
+Query threads : 1
+Layout        : Array-of-Structs (AoS)
+Output        : /Users/shamathmika/Library/CloudStorage/GoogleDrive-shamathmika.shamathmika@sjsu.edu/My Drive/2nd Year/Spring 2026/CMPE 275/Minis/Mini 1/CMPE-275-mini1/results/bench_phase1_local.csv
+================================================================
+
+[Load] Serial CSV load (1 thread, 3 file(s))...
+  Records loaded : 94589581
+  Rows read      : 95208669
+  Parse success  : 99.35%
+  avg 192869.97 ms  ±17387.93  min 154435.65  max 222228.69 ms
+
+[Index] Building time index...
+  Index build time: 179244.37 ms
+
+[Q1] Running 10 iterations...
+  avg 3073.923 ms  ±7022.285  min 732.121  max 23058.394  matches 94589579
+
+[Q2] Running 10 iterations...
+  avg 73680.656 ms  ±7180.015  min 64572.442  max 83794.821  matches 59430341
+
+[Q3] Running 10 iterations...
+  avg 75778.725 ms  ±6216.754  min 66922.922  max 85661.184  matches 76768430
+
+[Q4] Running 10 iterations...
+  avg 75996.418 ms  ±8452.518  min 62581.217  max 86016.229  matches 44721265
+
+[Q5] Running 10 iterations...
+  avg 73117.888 ms  ±7860.542  min 63429.786  max 88161.823  matches 89056440
+
+[Q6] Running 10 iterations...
+  avg 74031.929 ms  ±3437.840  min 68502.745  max 79001.988  matches 94589581  avg_fare $13.91
+
+
+=== Total Phase Wall-Clock Time ===
+  5938703.5 ms  (99.0 min)
+
+=== Summary ===
+-------------------------------------------------------------------------------------------------------------------
+Phase             Query           Threads    Avg(ms)   Std(ms) Min(ms) Max(ms)   Matches
+-------------------------------------------------------------------------------------------------------------------
+Phase1_serial     LOAD            1       192869.969 17387.925154435.646222228.691  94589581
+Phase1_serial     Q1              1         3073.923  7022.285 732.12123058.394  94589579
+Phase1_serial     Q2              1        73680.656  7180.01564572.44283794.821  59430341
+Phase1_serial     Q3              1        75778.725  6216.75466922.92285661.184  76768430
+Phase1_serial     Q4              1        75996.418  8452.51862581.21786016.229  44721265
+Phase1_serial     Q5              1        73117.888  7860.54263429.78688161.823  89056440
+Phase1_serial     Q6              1        74031.929  3437.84068502.74579001.988  94589581
+Phase1_serial     TOTAL_PHASE     1       5938703.548     0.0005938703.5485938703.548         0
+-------------------------------------------------------------------------------------------------------------------
+
+Metrics written to: /Users/shamathmika/Library/CloudStorage/GoogleDrive-shamathmika.shamathmika@sjsu.edu/My Drive/2nd Year/Spring 2026/CMPE 275/Minis/Mini 1/CMPE-275-mini1/results/bench_phase1_local.csv
+
+Done.
+--- Phase 1 done: Fri Mar  6 02:24:45 PST 2026 ---
+--- Phase 2 (AoS parallel 8T, 3 CSVs) start: Fri Mar  6 02:24:45 PST 2026 ---
+================================================================
+CMPE 275 Mini1 — Full Benchmark CLI  (Phase2_parallel)
+================================================================
+CSV files     : /Users/shamathmika/Downloads/taxi_data/2020.csv
+               /Users/shamathmika/Downloads/taxi_data/2021.csv
+               /Users/shamathmika/Downloads/taxi_data/2022.csv
+Runs/query    : 10
+Queries       : all
+Load threads  : 8
+Query threads : 8
+Layout        : Array-of-Structs (AoS)
+Output        : /Users/shamathmika/Library/CloudStorage/GoogleDrive-shamathmika.shamathmika@sjsu.edu/My Drive/2nd Year/Spring 2026/CMPE 275/Minis/Mini 1/CMPE-275-mini1/results/bench_phase2_local.csv
+================================================================
+
+[Load] Parallel CSV load (8 threads, 3 file(s))...
+  Records loaded : 94589581
+  Rows read      : 95208669
+  Parse success  : 99.35%
+  avg 250683.95 ms  ±30683.27  min 172640.36  max 280268.60 ms
+
+[Index] Building time index...
+  Index build time: 156103.39 ms
+
+[Q1] Running 10 iterations...
+  avg 1776.343 ms  ±1751.368  min 1171.434  max 6757.327  matches 94589579
+
+[Q2] Running 10 iterations...
+  avg 31147.326 ms  ±3001.799  min 27335.155  max 37098.207  matches 59430341
+
+[Q3] Running 10 iterations...
+  avg 31454.457 ms  ±3252.553  min 25860.670  max 35331.650  matches 76768430
+
+[Q4] Running 10 iterations...
+  avg 32042.944 ms  ±2742.125  min 25607.311  max 35605.934  matches 44721265
+
+[Q5] Running 10 iterations...
+  avg 42614.260 ms  ±2974.608  min 38495.499  max 47327.359  matches 89056440
+
+[Q6] Running 10 iterations...
+  avg 32571.381 ms  ±2558.496  min 28419.983  max 36437.392  matches 94589581  avg_fare $13.91
+
+
+=== Total Phase Wall-Clock Time ===
+  4453383.8 ms  (74.2 min)
+
+=== Summary ===
+-------------------------------------------------------------------------------------------------------------------
+Phase             Query           Threads    Avg(ms)   Std(ms) Min(ms) Max(ms)   Matches
+-------------------------------------------------------------------------------------------------------------------
+Phase2_parallel   LOAD            8       250683.945 30683.270172640.358280268.601  94589581
+Phase2_parallel   Q1              8         1776.343  1751.3681171.4346757.327  94589579
+Phase2_parallel   Q2              8        31147.326  3001.79927335.15537098.207  59430341
+Phase2_parallel   Q3              8        31454.457  3252.55325860.67035331.650  76768430
+Phase2_parallel   Q4              8        32042.944  2742.12525607.31135605.934  44721265
+Phase2_parallel   Q5              8        42614.260  2974.60838495.49947327.359  89056440
+Phase2_parallel   Q6              8        32571.381  2558.49628419.98336437.392  94589581
+Phase2_parallel   TOTAL_PHASE     8       4453383.834     0.0004453383.8344453383.834         0
+-------------------------------------------------------------------------------------------------------------------
+
+Metrics written to: /Users/shamathmika/Library/CloudStorage/GoogleDrive-shamathmika.shamathmika@sjsu.edu/My Drive/2nd Year/Spring 2026/CMPE 275/Minis/Mini 1/CMPE-275-mini1/results/bench_phase2_local.csv
+
+Done.
+--- Phase 2 done: Fri Mar  6 03:38:59 PST 2026 ---
+--- Phase 3 (SoA from AoS, 2023 only) start: Fri Mar  6 03:38:59 PST 2026 ---
+================================================================
+CMPE 275 Mini1 — Full Benchmark CLI  (Phase3_soa)
+================================================================
+CSV file      : /Users/shamathmika/Downloads/taxi_data/2023.csv
+Runs/query    : 10
+Queries       : all
+Load threads  : 1
+Query threads : 1
+Layout        : Object-of-Arrays (SoA from AoS)
+Output        : /Users/shamathmika/Library/CloudStorage/GoogleDrive-shamathmika.shamathmika@sjsu.edu/My Drive/2nd Year/Spring 2026/CMPE 275/Minis/Mini 1/CMPE-275-mini1/results/bench_phase3_local.csv
+================================================================
+
+[Load] Serial CSV load (1 thread, 1 file(s))...
+  Records loaded : 37917834
+  Rows read      : 38310226
+  Parse success  : 98.98%
+  avg 61592.78 ms  ±365.21  min 61084.75  max 62163.98 ms
+
+[SoA] Converting AoS -> SoA layout...
+  SoA arrays populated: 37917834 rows  (3065.38 ms)
+
+[Index] Building SoA time index...
+  Index build time: 2124.55 ms
+
+[Q1] Running 10 iterations (SoA)...
+  avg 0.001 ms  ±0.002  min 0.000  max 0.007  matches 60
+
+[Q2] Running 10 iterations (SoA)...
+  avg 176.299 ms  ±31.013  min 164.610  max 264.318  matches 22877491
+
+[Q3] Running 10 iterations (SoA)...
+  avg 124.871 ms  ±36.106  min 110.899  max 227.162  matches 32465246
+
+[Q4] Running 10 iterations (SoA)...
+  avg 151.275 ms  ±9.720  min 147.637  max 178.843  matches 18887846
+
+[Q5] Running 10 iterations (SoA)...
+  avg 0.026 ms  ±0.081  min 0.000  max 0.257  matches 60
+
+[Q6] Running 10 iterations (SoA)...
+  avg 49.364 ms  ±18.240  min 43.353  max 101.269  matches 37917834  avg_fare $19.90
+
+
+=== Total Phase Wall-Clock Time ===
+  627609.6 ms  (10.5 min)
+
+=== Summary ===
+-------------------------------------------------------------------------------------------------------------------
+Phase             Query           Threads    Avg(ms)   Std(ms) Min(ms) Max(ms)   Matches
+-------------------------------------------------------------------------------------------------------------------
+Phase1_serial     LOAD            1        61592.779   365.20661084.74962163.984  37917834
+Phase3_soa        Q1              1            0.001     0.002   0.000   0.007        60
+Phase3_soa        Q2              1          176.299    31.013 164.610 264.318  22877491
+Phase3_soa        Q3              1          124.871    36.106 110.899 227.162  32465246
+Phase3_soa        Q4              1          151.275     9.720 147.637 178.843  18887846
+Phase3_soa        Q5              1            0.026     0.081   0.000   0.257        60
+Phase3_soa        Q6              1           49.364    18.240  43.353 101.269  37917834
+Phase3_soa        TOTAL_PHASE     1       627609.554     0.000627609.554627609.554         0
+-------------------------------------------------------------------------------------------------------------------
+
+Metrics written to: /Users/shamathmika/Library/CloudStorage/GoogleDrive-shamathmika.shamathmika@sjsu.edu/My Drive/2nd Year/Spring 2026/CMPE 275/Minis/Mini 1/CMPE-275-mini1/results/bench_phase3_local.csv
+
+Done.
+--- Phase 3 done: Fri Mar  6 03:49:27 PST 2026 ---
+--- Phase 3b (SoA direct CSV, 3 CSVs) start: Fri Mar  6 03:49:27 PST 2026 ---
+================================================================
+CMPE 275 Mini1 — Full Benchmark CLI  (Phase3_soa_direct)
+================================================================
+CSV files     : /Users/shamathmika/Downloads/taxi_data/2020.csv
+               /Users/shamathmika/Downloads/taxi_data/2021.csv
+               /Users/shamathmika/Downloads/taxi_data/2022.csv
+Runs/query    : 10
+Queries       : all
+Load threads  : 1
+Query threads : 1
+Layout        : SoA direct from CSV
+Output        : /Users/shamathmika/Library/CloudStorage/GoogleDrive-shamathmika.shamathmika@sjsu.edu/My Drive/2nd Year/Spring 2026/CMPE 275/Minis/Mini 1/CMPE-275-mini1/results/bench_phase3b_local.csv
+================================================================
+
+[Load] Direct CSV → SoA load (serial, 3 file(s))...
+  Records loaded : 94589581
+  avg 171829.38 ms  ±9825.01  min 153700.23  max 180116.95 ms
+
+[Index] Building SoA time index...
+  Index build time: 24618.04 ms
+
+[Q1] Running 10 iterations (SoA direct)...
+  avg 685.960 ms  ±316.475  min 264.219  max 1512.241  matches 94589579
+
+[Q2] Running 10 iterations (SoA direct)...
+  avg 2525.513 ms  ±5605.949  min 637.600  max 18479.142  matches 59430341
+
+[Q3] Running 10 iterations (SoA direct)...
+  avg 2457.647 ms  ±5732.822  min 496.625  max 18772.490  matches 76768430
+
+[Q4] Running 10 iterations (SoA direct)...
+  avg 1569.546 ms  ±3508.076  min 365.865  max 11551.527  matches 44721265
+
+[Q5] Running 10 iterations (SoA direct)...
+  avg 2120.819 ms  ±2169.948  min 1374.053  max 8294.586  matches 89056440
+
+[Q6] Running 10 iterations (SoA direct)...
+  avg 2134.926 ms  ±6356.652  min 109.664  max 20225.882  matches 94589581  avg_fare $13.91
+
+
+=== Total Phase Wall-Clock Time ===
+  1869070.2 ms  (31.2 min)
+
+=== Summary ===
+-------------------------------------------------------------------------------------------------------------------
+Phase             Query           Threads    Avg(ms)   Std(ms) Min(ms) Max(ms)   Matches
+-------------------------------------------------------------------------------------------------------------------
+Phase3_soa_direct LOAD            1       171829.380  9825.005153700.229180116.945  94589581
+Phase3_soa_direct Q1              1          685.960   316.475 264.2191512.241  94589579
+Phase3_soa_direct Q2              1         2525.513  5605.949 637.60018479.142  59430341
+Phase3_soa_direct Q3              1         2457.647  5732.822 496.62518772.490  76768430
+Phase3_soa_direct Q4              1         1569.546  3508.076 365.86511551.527  44721265
+Phase3_soa_direct Q5              1         2120.819  2169.9481374.0538294.586  89056440
+Phase3_soa_direct Q6              1         2134.926  6356.652 109.66420225.882  94589581
+Phase3_soa_direct TOTAL_PHASE     1       1869070.197     0.0001869070.1971869070.197         0
+-------------------------------------------------------------------------------------------------------------------
+
+Metrics written to: /Users/shamathmika/Library/CloudStorage/GoogleDrive-shamathmika.shamathmika@sjsu.edu/My Drive/2nd Year/Spring 2026/CMPE 275/Minis/Mini 1/CMPE-275-mini1/results/bench_phase3b_local.csv
+
+Done.
+--- Phase 3b done: Fri Mar  6 04:20:37 PST 2026 ---
+=== ALL PHASES COMPLETE: Fri Mar  6 04:20:37 PST 2026 ===

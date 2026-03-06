@@ -282,4 +282,72 @@ std::int64_t CsvReader::parse_timestamp(const std::string& timestamp_str) {
     }
 }
 
+// ---- Parallel chunk loader --------------------------------------------------
+
+std::vector<TripRecord> CsvReader::load_chunk(
+    const std::string& path,
+    std::int64_t byte_start,
+    std::int64_t byte_end,
+    Stats& out_stats)
+{
+    std::ifstream f(path, std::ios::in);
+    if (!f.is_open()) {
+        throw std::runtime_error("CsvReader::load_chunk: cannot open " + path);
+    }
+
+    if (byte_start > 0) {
+        // Seek into the middle of the file. The byte boundary almost certainly
+        // falls inside a line that started in the previous chunk, so discard
+        // everything up to and including the next newline.  The previous chunk
+        // will have read that line in full, so ownership is unambiguous.
+        f.seekg(byte_start);
+        if (!f.good()) {
+            throw std::runtime_error(
+                "CsvReader::load_chunk: seek failed for " + path);
+        }
+        std::string discard;
+        std::getline(f, discard);
+    } else {
+        // Chunk 0: skip the CSV header row.
+        std::string header;
+        std::getline(f, header);
+    }
+
+    // Build a bare CsvReader that owns the already-positioned stream.
+    CsvReader reader;
+    reader.file_ = std::move(f);
+    reader.header_read_ = true;
+
+    std::vector<TripRecord> results;
+    TripRecord rec;
+
+    while (reader.file_.good()) {
+        // Check position BEFORE reading the line so every line is owned by
+        // exactly one chunk: lines whose first byte is <= byte_end belong here.
+        auto pos = static_cast<std::int64_t>(reader.file_.tellg());
+        if (pos < 0 || pos > byte_end) break;
+
+        std::string line;
+        if (!std::getline(reader.file_, line)) break;
+
+        reader.stats_.rows_read++;
+
+        if (line.empty() ||
+            line.find_first_not_of(" \t\r\n") == std::string::npos) {
+            reader.stats_.rows_discarded++;
+            continue;
+        }
+
+        if (reader.parse_line(line, rec)) {
+            reader.stats_.rows_parsed_ok++;
+            results.push_back(rec);
+        } else {
+            reader.stats_.rows_discarded++;
+        }
+    }
+
+    out_stats = reader.stats_;
+    return results;
+}
+
 } // namespace taxi
