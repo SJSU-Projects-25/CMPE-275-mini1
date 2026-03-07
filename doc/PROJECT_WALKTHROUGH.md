@@ -612,12 +612,13 @@ After all runs, calls `recorder.write_csv(output_path)` and `recorder.print_summ
 
 Reads the `results/benchmarks/bench_phase*.csv` files and generates 3 PNG charts saved to `results/plots/`.
 
-**`load_and_filter(path, phase_label)`**
-Reads a benchmark CSV with `pandas.read_csv()` and tags all rows with the given phase label.
+**`load_csv(path)`**
+Reads a benchmark CSV with `pandas.read_csv()` and strips whitespace from column names.
+Returns the raw DataFrame — no phase label tagging (phases are identified by the caller).
 
-**`plot_query_times(df, output_dir)`**
-Grouped bar chart with stddev error bars. X-axis: query labels (LOAD, Q1–Q6). Y-axis: avg_ms.
-One bar group per phase. Colors: blue (Phase 1), orange (Phase 2), green (Phase 3).
+**`plot_query_times(phases, label, out_dir)`**
+Grouped bar chart with stddev error bars. X-axis: query labels (Q1–Q6, excluding LOAD/TOTAL_PHASE). Y-axis: avg_ms.
+One bar group per phase. Colors: light coral/`#FDACAC` (Phase 1), slate blue/`#7C96AB` (Phase 2), sage green/`#6F826A` (Phase 3).
 Saves as `query_times.png`.
 
 **`plot_speedup(df, output_dir)`**
@@ -640,29 +641,39 @@ the 3 plots.
 **Author:** Shamathmika
 **Requirement connection:** Report requirement — strong scaling analysis.
 
-Reads benchmark CSVs collected at 1, 2, 4, 8 threads and generates scaling charts.
+Reads benchmark CSVs collected at 1, 2, 4, 8 threads for both AoS and SoA and generates
+three scaling charts. Expects CSVs in `results/benchmarks/scaling/` named:
+`scaling_aos_t{1,2,4,8}.csv` and `scaling_soa_t{1,2,4,8}.csv`.
 
-**`load_scaling_data(csv_paths, thread_counts)`**
-Loads each CSV tagged with its thread count into one combined DataFrame.
+**`build_scaling_table(results_dir)`**
+Loads all 8 per-thread CSVs from `results_dir`. Returns two nested dicts:
+`aos_data[query][thread_count] = (avg_ms, stddev_ms)` and `soa_data[query][thread_count]`.
+Covers all 6 queries (Q1–Q6 including index-assisted Q1 and combined Q5).
 
-**`plot_query_time_vs_threads(df, output_dir)`**
-Log-log line chart: X-axis = thread count, Y-axis = avg_ms. One line per query (Q2, Q3, Q4,
-Q6 — the full-scan queries). Shows how queries scale with thread count.
+**`plot_query_time(aos_data, soa_data, out_dir)`**
+2×3 subplot grid (one subplot per query). Each subplot shows a log-log line chart:
+X-axis = thread count (1,2,4,8), Y-axis = avg_ms. AoS in light coral (`#FDACAC`, circles),
+SoA in sage green (`#6F826A`, squares), with stddev error bars. Custom legend via
+`matplotlib.lines.Line2D` (no stddev styling shown in legend key).
 Saves as `scaling_query_time.png`.
 
-**`plot_speedup_vs_threads(df, output_dir)`**
-Speedup vs thread count with an "ideal linear" reference line (y = x). Shows parallel
-efficiency — how close to linear scaling each query achieves.
+**`plot_speedup(aos_data, soa_data, out_dir)`**
+Two side-by-side subplots (`sharey=False`): left = AoS parallel scaling, right = SoA scaling.
+Both use the AoS 1-thread result as the common baseline. Dashed black line = ideal linear
+speedup. Query colors: Q1=`#7C96AB`, Q2=`#FDACAC`, Q3=`#6F826A`, Q4=`#735557`,
+Q5=`#D97D55`, Q6=`#9B7EBD`. Independent Y-axes (AoS tops at ~2.5×, SoA at 4–48×).
 Saves as `scaling_speedup.png`.
 
-**`plot_soa_vs_aos(df_aos, df_soa, output_dir)`**
-Grouped bar chart comparing AoS and SoA query times at 2 and 4 threads side by side.
-Clearly quantifies the SoA cache advantage independent of thread count.
+**`plot_aos_vs_soa(aos_data, soa_data, out_dir)`**
+Grouped bar chart: for each query, shows AoS and SoA bars at all four thread counts
+(t=1,2,4,8). AoS bars use lightest-to-darkest coral shades; SoA uses lightest-to-darkest
+sage shades. Log Y-axis to show the orders-of-magnitude SoA advantage.
 Saves as `scaling_soa_vs_aos.png`.
 
 **`main()`**
-Auto-discovers CSVs by naming convention (`bench_phase1_real.csv` for 1T,
-`scaling_aos_t2.csv`, `scaling_aos_t4.csv`, etc.). Calls all three plot functions.
+Accepts `--results` (default: `results/benchmarks/scaling/`) and `--output` (default:
+`results/plots/scaling/`) CLI arguments. Calls `build_scaling_table` then all three plot
+functions. Called by `scripts/run_scaling_benchmark.sh` after all per-thread CSVs exist.
 
 ---
 
@@ -729,4 +740,5 @@ total improvement for scan-heavy queries.
 | `python/plot_comparison.py` | 3 | Shamathmika |
 | `python/plot_scaling.py` | 3 | Shamathmika |
 | `scripts/run_benchmark.sh` | 3 | Shamathmika |
+| `scripts/run_scaling_benchmark.sh` | 3 | Shamathmika |
 | `CMakeLists.txt` | 1/2/3 | All (Ashish initial, extended each phase) |
