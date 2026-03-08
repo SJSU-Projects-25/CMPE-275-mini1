@@ -188,11 +188,24 @@ Disk I/O is the bottleneck; multiple threads generate competing seeks on a singl
 device. Parallel loading is only beneficial with multiple independent storage devices or
 SSDs with parallel read paths.
 
-### 4. Direct CSV→SoA avoids the 2×N memory peak
+### 4. SoA's cache advantage collapses for index-assisted queries
 
-Phase 3a's `from_aos()` requires AoS + SoA simultaneously: ~23.8 GB peak for 3 CSVs (exceeds
-16 GB RAM). Phase 3b's `from_csv()` single-pass loads directly into SoA columns, keeping peak
-at ~11.9 GB. This enables SoA to run on the full 3-CSV dataset rather than only 2023.csv.
+SoA delivers 29–48× speedup on full-scan queries (Q2–Q4, Q6) but only **4.48×** on Q1
+(time-range, index-assisted) — the lowest gain of any query.
+
+| Query type | Phase 1 (ms) | Phase 3b (ms) | SoA speedup |
+|---|---|---|---|
+| Q2 distance scan (sequential) | 73,681 | 2,526 | **29×** |
+| Q3 fare scan (sequential) | 75,779 | 2,458 | **31×** |
+| Q4 location scan (sequential) | 75,996 | 1,570 | **48×** |
+| Q1 time range (index-assisted) | 3,074 | 686 | **4.5×** |
+
+Full-scan queries iterate column arrays sequentially — a 64-byte cache line delivers 8 useful
+doubles. Q1 follows the time-sorted index (`time_sorted_idx_[]`) to non-contiguous row
+positions, defeating the hardware prefetcher regardless of SoA layout. The index that makes
+Q1 fast in absolute terms (O(log N) vs O(N)) is the same mechanism that prevents SoA from
+helping Q1 as much as it helps scan queries. **Column-oriented layouts benefit sequential
+access patterns, not pointer-chasing or index-indirect access.**
 
 ### 5. Swap pressure inflates the SoA speedup magnitude
 
@@ -209,6 +222,12 @@ As a result, the 29–48× speedup numbers observed here are likely **inflated v
 16–32 GB machine would show**. On adequate RAM, AoS queries would not be page-fault limited,
 and the gap would narrow — estimated 10–20× range for full-scan queries. The direction and
 ranking of results remains valid; the magnitude is hardware-constrained.
+
+### 6. Direct CSV→SoA avoids the 2×N memory peak
+
+Phase 3a's `from_aos()` requires AoS + SoA simultaneously: ~23.8 GB peak for 3 CSVs (exceeds
+16 GB RAM). Phase 3b's `from_csv()` single-pass loads directly into SoA columns, keeping peak
+at ~11.9 GB. This enables SoA to run on the full 3-CSV dataset rather than only 2023.csv.
 
 ---
 
@@ -281,9 +300,25 @@ page cache and run in ~60–110 ms. This warm/cold bimodal distribution inflates
 and variance. The practical takeaway: in a real workload where data is warm, SoA's throughput
 would be close to the minimum times (60–640 ms), not the averages shown here.
 
----
+### S6. SoA Q1 gets slower with more threads — parallelism becomes a net negative
 
-### 6. Fare inflation visible in aggregate data
+Every other SoA query improves (or stays flat) as thread count increases. SoA Q1 degrades:
 
-Q6 average fare: **$13.91** (2020–2022) vs **$19.90** (2023). Post-COVID rideshare demand
-recovery and NYC fare increases are reflected directly in the aggregation result.
+| | t=1 | t=2 | t=4 | t=8 |
+|---|---|---|---|---|
+| SoA Q1 (ms) | ~686 | ~700 | ~1,000 | ~1,100 |
+
+Q1 uses the time-sorted index (`time_sorted_idx_[]`) to locate matching rows, then accesses
+`pickup_timestamp[]` at those non-contiguous positions — an inherently random access pattern.
+At t=1, the hardware prefetcher partially compensates. With multiple OMP threads, each thread
+independently chases random index positions across the same memory region, creating **competing
+random-access streams** that thrash the same cache lines and TLB entries simultaneously. The
+resulting cache/TLB pressure grows with thread count and outweighs any parallel computation
+gain.
+
+Additionally, SoA Q1 at t=1 is already fast (~686 ms) relative to the ~73,000 ms scan queries.
+The OMP fork/join overhead and per-thread result-buffer merge are non-trivial relative to 686 ms,
+whereas they are negligible relative to 73,000 ms: **when serial work is small enough,
+parallelism overhead dominates**. AoS Q1 still improves with threads (3,074 ms → 1,776 ms at
+t=8) because it starts 4.5× slower — enough margin for parallel gain to exceed overhead.
+
