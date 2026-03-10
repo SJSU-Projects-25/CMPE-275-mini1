@@ -42,7 +42,8 @@ This project benchmarks three phases of memory-layout strategies for scan-heavy 
 │   ├── MetricsRecorder.cpp
 │   ├── ParallelLoader.cpp
 │   ├── SoAQueryEngine.cpp          # Also implements TripDataSoA::from_aos/from_csv
-│   └── benchmark_main.cpp          # Main benchmark executable (all 3 phases)
+│   ├── benchmark_main.cpp          # Main benchmark executable (all 3 phases)
+│   └── unit_tests.cpp              # Unit tests (26 tests, no external framework)
 ├── scripts/
 │   ├── run_benchmark.sh            # Runs all 3 phases (3a+3b), logs to results/
 │   ├── run_scaling_benchmark.sh    # Runs strong scaling benchmarks (t=1,2,4,8)
@@ -61,6 +62,8 @@ This project benchmarks three phases of memory-layout strategies for scan-heavy 
     │   ├── bench_phase3b_local.csv
     │   ├── bench_local_run.log
     │   └── scaling/               # Strong scaling CSVs (AoS/SoA x t1/t2/t4/t8)
+    ├── tests/
+    │   └── unit_test_results.txt   # Unit test output (26/26 pass)
     └── plots/                      # Generated charts
         ├── query_times.png
         ├── speedup.png
@@ -95,6 +98,28 @@ cmake --build build --target taxi_bench_full
 # Verify
 ls build/bin/taxi_bench_full
 ```
+
+---
+
+## Testing
+
+26 unit tests cover all core components (no external test framework required):
+
+| Component       | Tests | Coverage                                            |
+| --------------- | ----- | --------------------------------------------------- |
+| TripRecord      | 6     | Valid/invalid records, boundary conditions           |
+| CsvReader       | 4     | Parsing, EOF, missing file, multi-row               |
+| TripDataSoA     | 4     | from_aos conversion, from_csv loading, empty input   |
+| BenchmarkRunner | 3     | Timing stats, single run, zero runs edge case        |
+| QueryEngine     | 4     | Distance, fare, location range queries, aggregation  |
+| SoAQueryEngine  | 5     | Same queries + AoS/SoA consistency check             |
+
+```bash
+cmake --build build --target unit_tests
+./build/bin/unit_tests
+```
+
+Results are saved to `results/tests/unit_test_results.txt`.
 
 ---
 

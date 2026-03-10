@@ -220,26 +220,28 @@ def plot_speedup(aos_data, soa_data, out_dir):
 # ── Plot 3: AoS vs SoA side-by-side at each thread count ─────────────────────
 
 def plot_aos_vs_soa(aos_data, soa_data, out_dir):
-    """Grouped bar chart: for each query, show AoS and SoA at threads 1, 2, 4, 8."""
+    """Grouped bar chart: AoS bars grouped left, SoA bars grouped right per query."""
     thread_counts = [1, 2, 4, 8]
-    n_threads     = len(thread_counts)
     queries       = SCALE_QUERIES
     n_queries     = len(queries)
 
     x   = np.arange(n_queries)
-    w   = 0.09
+    w   = 0.08
+    gap = 0.04  # gap between AoS group and SoA group
     fig, ax = plt.subplots(figsize=(14, 6))
 
+    # AoS bars (left group): positions -4w-gap/2 to -w-gap/2
     for i, t in enumerate(thread_counts):
-        aos_avgs = [aos_data[q].get(t, (np.nan, 0))[0] for q in queries]
-        soa_avgs = [soa_data[q].get(t, (np.nan, 0))[0] for q in queries]
-
-        offset_aos = (2 * i - n_threads + 0.5) * w - w * 0.5
-        offset_soa = offset_aos + w
-
-        ax.bar(x + offset_aos, aos_avgs, w, label=f"AoS {t}t",
+        avgs = [aos_data[q].get(t, (np.nan, 0))[0] for q in queries]
+        offset = -(4 - i) * w - gap / 2
+        ax.bar(x + offset + w / 2, avgs, w, label=f"AoS {t}t",
                color=AOS_SHADES[i], alpha=0.9, edgecolor="#888888", linewidth=0.5)
-        ax.bar(x + offset_soa, soa_avgs, w, label=f"SoA {t}t",
+
+    # SoA bars (right group): positions gap/2 to gap/2+4w
+    for i, t in enumerate(thread_counts):
+        avgs = [soa_data[q].get(t, (np.nan, 0))[0] for q in queries]
+        offset = gap / 2 + i * w
+        ax.bar(x + offset + w / 2, avgs, w, label=f"SoA {t}t",
                color=SOA_SHADES[i], alpha=0.9, edgecolor="#888888", linewidth=0.5)
 
     ax.set_yscale("log")
@@ -247,9 +249,15 @@ def plot_aos_vs_soa(aos_data, soa_data, out_dir):
     ax.set_xticklabels([f"{q}\n{QUERY_LABELS[q]}" for q in queries])
     ax.set_ylabel("Avg query time (ms, log scale)")
     ax.set_title(f"AoS vs SoA query time at each thread count\n{DATASET_LABEL}")
-    ax.legend(fontsize=8, ncol=2)
+
+    # Legend: AoS on left column, SoA on right column
+    handles, labels = ax.get_legend_handles_labels()
+    # Reorder: AoS 1t,2t,4t,8t in col 1; SoA 1t,2t,4t,8t in col 2
+    ax.legend(handles, labels, fontsize=8, ncol=2,
+              loc="upper right", columnspacing=1.5)
     ax.grid(axis="y", linestyle="--", alpha=0.4)
 
+    fig.tight_layout()
     save(fig, os.path.join(out_dir, "scaling_soa_vs_aos.png"))
 
 

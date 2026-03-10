@@ -92,9 +92,15 @@ add_executable(test_query_engine
 )
 target_link_libraries(test_query_engine PRIVATE taxi_core)
 
+# Unit tests
+add_executable(unit_tests
+    src/unit_tests.cpp
+)
+target_link_libraries(unit_tests PRIVATE taxi_core)
+
 # Set output directories for all targets
 set_target_properties(
-    taxi_core taxi_bench_full test_csv_reader test_query_engine
+    taxi_core taxi_bench_full test_csv_reader test_query_engine unit_tests
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib

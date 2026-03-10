@@ -1,0 +1,45 @@
+
+=== CMPE-275 Mini 1 Unit Tests ===
+
+-- TripRecord --
+  PASS  test_valid_record
+  PASS  test_invalid_record_negative_timestamp
+  PASS  test_invalid_record_dropoff_before_pickup
+  PASS  test_invalid_record_negative_distance
+  PASS  test_invalid_record_negative_total
+  PASS  test_record_zero_passengers_valid
+
+-- CsvReader --
+  PASS  test_csv_reader_parse_valid_row
+  PASS  test_csv_reader_eof
+  PASS  test_csv_reader_nonexistent_file
+  PASS  test_csv_reader_multiple_rows
+
+-- TripDataSoA --
+  PASS  test_soa_from_aos_size
+  PASS  test_soa_from_aos_field_values
+  PASS  test_soa_from_aos_empty
+  PASS  test_soa_from_csv
+
+-- BenchmarkRunner --
+  PASS  test_benchmark_runner_basic
+  PASS  test_benchmark_runner_single_run
+  PASS  test_benchmark_runner_zero_runs
+
+-- QueryEngine (AoS) --
+  PASS  test_query_distance_range
+  PASS  test_query_fare_range
+  PASS  test_query_location_range
+  PASS  test_query_aggregate_fare
+
+-- SoAQueryEngine --
+  PASS  test_soa_query_distance_range
+  PASS  test_soa_query_fare_range
+  PASS  test_soa_query_location_range
+  PASS  test_soa_query_aggregate_fare
+  PASS  test_aos_soa_query_consistency
+
+=================================
+  Total: 26  Passed: 26  Failed: 0
+=================================
+
